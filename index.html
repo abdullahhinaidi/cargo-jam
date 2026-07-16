@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>زحمة الشحن — Cargo Jam</title>
+  <link rel="stylesheet" href="style.css?v=2" />
+</head>
+<body>
+<div id="app">
+
+  <!-- ===================== MAIN MENU ===================== -->
+  <section id="menu" class="screen">
+    <div class="menu-card">
+      <div class="logo">🚚</div>
+      <h1 class="title">زحمة الشحن</h1>
+      <p class="tagline">وصّل الشحنات.. وفكّ الزحمة!</p>
+      <div class="menu-buttons">
+        <button class="btn btn-primary big" id="playBtn">▶ ابدأ اللعب</button>
+        <button class="btn" id="levelsBtn">🗺️ المراحل</button>
+        <button class="btn" id="settingsBtn">⚙️ الإعدادات</button>
+      </div>
+      <div class="menu-stats">
+        <span id="menuStars">⭐ 0 / 90</span>
+        <span id="menuCoins">🪙 0</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== LEVEL SELECT ===================== -->
+  <section id="levels" class="screen hidden">
+    <header class="bar">
+      <button class="icon-btn" data-nav="menu">‹</button>
+      <h2>اختر المرحلة</h2>
+      <span class="bar-right" id="levelsStars">⭐ 0</span>
+    </header>
+    <div class="levels-grid" id="levelsGrid"></div>
+  </section>
+
+  <!-- ===================== SETTINGS ===================== -->
+  <section id="settings" class="screen hidden">
+    <header class="bar">
+      <button class="icon-btn" data-nav="menu">‹</button>
+      <h2>الإعدادات</h2>
+      <span class="bar-right"></span>
+    </header>
+    <div class="settings-body">
+      <label class="toggle"><span>🔊 المؤثرات الصوتية</span><input type="checkbox" id="sfxToggle" checked></label>
+      <label class="toggle"><span>🎵 الموسيقى</span><input type="checkbox" id="musicToggle" checked></label>
+      <button class="btn danger" id="resetBtn">↺ إعادة ضبط التقدّم</button>
+      <p class="hint-text">اللعبة تحفظ تقدّمك تلقائياً على هذا الجهاز.</p>
+    </div>
+  </section>
+
+  <!-- ===================== GAME ===================== -->
+  <section id="game" class="screen hidden">
+    <header id="topbar">
+      <button class="icon-btn" id="pauseBtn">⏸️</button>
+      <div class="stat"><span class="stat-label">المرحلة</span><span class="stat-value" id="levelValue">1</span></div>
+      <div class="stat" id="livesBox"><span class="stat-label">القلوب</span><span class="stat-value" id="livesValue">❤️❤️❤️</span></div>
+      <div class="stat"><span class="stat-label">العملات</span><span class="stat-value" id="coinsValue">0</span></div>
+      <div class="stat"><span class="stat-label">المتبقّي</span><span class="stat-value" id="leftValue">0</span></div>
+    </header>
+    <div id="stage"><canvas id="board"></canvas></div>
+    <footer id="controls">
+      <button class="btn btn-ghost" id="hintBtn">💡 تلميح</button>
+      <button class="btn btn-ghost" id="restartBtn">↻ إعادة</button>
+    </footer>
+  </section>
+
+  <!-- ===================== PAUSE OVERLAY ===================== -->
+  <div id="pauseOverlay" class="overlay hidden">
+    <div class="overlay-card">
+      <h1>⏸️ إيقاف مؤقّت</h1>
+      <div class="menu-buttons">
+        <button class="btn btn-primary" id="resumeBtn">▶ استئناف</button>
+        <button class="btn" id="pauseRestartBtn">↻ إعادة المرحلة</button>
+        <button class="btn" id="pauseMenuBtn">🏠 القائمة الرئيسية</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== RESULT OVERLAY ===================== -->
+  <div id="resultOverlay" class="overlay hidden">
+    <div class="overlay-card">
+      <div class="stars" id="resultStars"><span>★</span><span>★</span><span>★</span></div>
+      <h1 id="resultTitle">أحسنت!</h1>
+      <p id="resultSub"></p>
+      <div class="menu-buttons">
+        <button class="btn btn-primary" id="nextBtn">▶ التالي</button>
+        <button class="btn" id="retryBtn">↻ إعادة</button>
+        <button class="btn" id="resultMenuBtn">🏠 القائمة</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== START (per-level intro) ===================== -->
+  <div id="startOverlay" class="overlay hidden">
+    <div class="overlay-card">
+      <h1 id="startTitle">المرحلة 1</h1>
+      <p id="startSub">اسحب الشاحنة المطلوبة إلى رصيف التحميل. الإطار الأخضر = مطلوبة الآن.</p>
+      <button class="btn btn-primary big" id="startBtn">ابدأ</button>
+    </div>
+  </div>
+
+</div>
+
+  <script src="levels.js?v=2"></script>
+  <script src="game.js?v=2"></script>
+</body>
+</html>

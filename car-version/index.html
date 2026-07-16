@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Parking Jam — زحمة المواقف</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="game">
+    <header id="topbar">
+      <div class="stat" id="levelBox">
+        <span class="stat-label">المرحلة</span>
+        <span class="stat-value" id="levelValue">1</span>
+      </div>
+      <div class="stat" id="timerBox">
+        <span class="stat-label">الوقت</span>
+        <span class="stat-value" id="timerValue">60.0</span>
+      </div>
+      <div class="stat" id="movesBox">
+        <span class="stat-label">النقلات</span>
+        <span class="stat-value" id="movesValue">0</span>
+      </div>
+    </header>
+
+    <div id="stage">
+      <canvas id="board"></canvas>
+    </div>
+
+    <footer id="controls">
+      <button class="btn" id="restartBtn">↻ إعادة</button>
+      <button class="btn btn-ghost" id="hintBtn">💡 تلميح</button>
+    </footer>
+  </div>
+
+  <!-- Overlay for win / lose / start -->
+  <div id="overlay" class="overlay hidden">
+    <div class="overlay-card">
+      <h1 id="overlayTitle">🚗 زحمة المواقف</h1>
+      <p id="overlaySub">اضغط على السيارة لتخرجها من الموقف. فكّ الزحمة قبل نفاد الوقت!</p>
+      <button class="btn btn-primary" id="overlayBtn">ابدأ اللعب</button>
+    </div>
+  </div>
+
+  <script src="levels.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
