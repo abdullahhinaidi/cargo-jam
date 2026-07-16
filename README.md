@@ -2,7 +2,7 @@
 
 لعبة ألغاز شحن ولوجستيات تعمل في المتصفح مباشرة — بدون تثبيت وبدون خادم.
 
-**العب الآن:** https://abdullahhinaidi.github.io/busways/
+**العب الآن:** https://abdullahhinaidi.github.io/cargo-jam/
 
 ## طريقة اللعب
 
