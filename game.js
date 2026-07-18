@@ -321,9 +321,16 @@ function loadLevel(i) {
   for (let s = 0; s < SLOTS; s++) orders.push(makeOrder());
   ensureSolvableSeed(); updateHUD(); updateMusic(); render();
 }
+const HEART_PATH = 'M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z';
+const HEART_FULL = `<svg class="hrt" viewBox="0 0 24 24"><path d="${HEART_PATH}"/></svg>`;
+const HEART_EMPTY = `<svg class="hrt empty" viewBox="0 0 24 24"><path d="${HEART_PATH}"/></svg>`;
+function heartsHTML() {
+  if (maxLives > 5) return HEART_FULL + '<span class="hx">× ' + Math.max(0, lives) + '</span>';
+  let s = ''; for (let i = 0; i < maxLives; i++) s += (i < lives ? HEART_FULL : HEART_EMPTY); return s;
+}
 function updateHUD() {
   el.levelValue.textContent = levelIndex + 1;
-  el.livesValue.textContent = lives <= 0 ? '💔' : (lives <= 3 ? '❤️'.repeat(lives) : '❤️×' + lives);
+  el.livesValue.innerHTML = heartsHTML();
   el.livesBox.classList.toggle('low', lives <= 1);
   el.coinsValue.textContent = save.coins;      // live persistent wallet
   el.leftValue.textContent = trucks.filter(t => !t.done).length;
@@ -727,24 +734,33 @@ function drawBoard() {
     else { g.addColorStop(0, '#f4f1e6'); g.addColorStop(1, '#e2ddcb'); }
     ctx.fillStyle = g; roundRect(rc.x, rc.y, rc.w, rc.h, 10); ctx.fill();
     if (rush) { ctx.strokeStyle = 'rgba(255,214,84,0.95)'; ctx.lineWidth = 3; roundRect(rc.x + 1.5, rc.y + 1.5, rc.w - 3, rc.h - 3, 9); ctx.stroke(); }
-    ctx.fillStyle = 'rgba(0,0,0,0.12)'; roundRect(rc.x, rc.y, rc.w, rc.h * 0.16, 6); ctx.fill(); // clip strip
+    // colored material accent header (neutral strip for an empty slot)
+    ctx.save(); roundRect(rc.x, rc.y, rc.w, rc.h, 10); ctx.clip();
+    ctx.fillStyle = o ? (rush ? '#e6a416' : MATERIALS[o.mat].color) : 'rgba(0,0,0,0.12)';
+    ctx.fillRect(rc.x, rc.y, rc.w, rc.h * 0.13); ctx.restore();
     ctx.fillStyle = '#c9c2a8'; ctx.fillRect(rc.x + rc.w * 0.44, rc.y - 3, rc.w * 0.12, 6); // clip
     if (!o) { ctx.fillStyle = '#9a9482'; ctx.font = `${Math.floor(CELL*0.4)}px system-ui`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('✓', rc.x + rc.w/2, rc.y + rc.h/2); continue; }
-    ctx.font = `${Math.floor(CELL*0.56)}px system-ui`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(MATERIALS[o.mat].icon, rc.x + rc.w/2, rc.y + rc.h*0.42);
-    ctx.fillStyle = rush ? '#3a2a00' : '#2a2a2a'; ctx.font = `bold ${Math.floor(CELL*0.32)}px system-ui`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText('× ' + (o.qty - o.done), rc.x + rc.w/2, rc.y + rc.h*0.72);
+    const mat = MATERIALS[o.mat];
+    ctx.font = `${Math.floor(CELL*0.48)}px system-ui`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(mat.icon, rc.x + rc.w/2, rc.y + rc.h*0.36);
+    ctx.fillStyle = rush ? '#3a2a00' : '#4a4636'; ctx.font = `bold ${Math.floor(CELL*0.22)}px system-ui`;
+    ctx.fillText(mat.name, rc.x + rc.w/2, rc.y + rc.h*0.54);
+    ctx.fillStyle = rush ? '#3a2a00' : '#2a2a2a'; ctx.font = `bold ${Math.floor(CELL*0.3)}px system-ui`;
+    ctx.fillText('× ' + (o.qty - o.done), rc.x + rc.w/2, rc.y + rc.h*0.69);
+    // delivery-progress pips
+    const pips = o.qty, pw = Math.min(CELL*0.16, (rc.w*0.74)/pips - 3), tot = pips*pw + (pips-1)*3, sxp = rc.x + rc.w/2 - tot/2, pyp = rc.y + rc.h*0.79;
+    for (let k = 0; k < pips; k++) { ctx.fillStyle = k < o.done ? mat.color : 'rgba(0,0,0,0.2)'; roundRect(sxp + k*(pw+3), pyp, pw, Math.max(3, CELL*0.07), 2); ctx.fill(); }
     if (o.rush) {  // golden urgent badge
-      const pw = rc.w*0.56, ph = CELL*0.26, px = rc.x + rc.w/2 - pw/2, py = rc.y + 2.5;
-      ctx.fillStyle = '#c0392b'; roundRect(px, py, pw, ph, ph/2); ctx.fill();
-      ctx.fillStyle = '#fff'; ctx.font = `bold ${Math.floor(CELL*0.19)}px system-ui`; ctx.textBaseline = 'middle';
+      const pw2 = rc.w*0.52, ph = CELL*0.24, px = rc.x + rc.w/2 - pw2/2, py = rc.y + 2.5;
+      ctx.fillStyle = '#c0392b'; roundRect(px, py, pw2, ph, ph/2); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.font = `bold ${Math.floor(CELL*0.18)}px system-ui`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillText('⚡ ×2', rc.x + rc.w/2, py + ph/2);
     }
-    const bx = rc.x + rc.w*0.12, bw = rc.w*0.76, by = rc.y + rc.h - 11, bh = 5;
-    ctx.fillStyle = 'rgba(0,0,0,0.18)'; roundRect(bx, by, bw, bh, 3); ctx.fill();
+    const bh = Math.max(4, CELL*0.08), bx = rc.x + rc.w*0.1, bw = rc.w*0.8, by = rc.y + rc.h - bh - CELL*0.07;
+    ctx.fillStyle = 'rgba(0,0,0,0.2)'; roundRect(bx, by, bw, bh, bh/2); ctx.fill();
     const frac = Math.max(0, o.patience / o.maxP);
     ctx.fillStyle = frac > .5 ? '#2ec27e' : frac > .25 ? '#e0a91a' : '#e0453a';
-    roundRect(bx, by, bw*frac, bh, 3); ctx.fill();
+    roundRect(bx, by, bw*frac, bh, bh/2); ctx.fill();
   }
 }
 
