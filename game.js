@@ -348,7 +348,13 @@ canvas.addEventListener('pointerdown', handleTap);
 
 /* ---------- Loading ---------- */
 function tryLoad(t) {
-  const idx = orders.findIndex(o => o && o.mat === t.mat && (o.qty - o.done) > 0);
+  // deliver to the MOST URGENT matching order (least time left), not whichever
+  // sits first on the board — so an older order about to expire is served first
+  let idx = -1, least = Infinity;
+  for (let i = 0; i < orders.length; i++) {
+    const o = orders[i];
+    if (o && o.mat === t.mat && (o.qty - o.done) > 0 && o.patience < least) { least = o.patience; idx = i; }
+  }
   if (idx < 0) return;
   const o = orders[idx], rc = cardRect(idx);
   o.done++; t.loadLeft--; coins += UNIT_COINS; earned += UNIT_COINS;
