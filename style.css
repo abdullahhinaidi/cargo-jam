@@ -61,7 +61,10 @@ body { background:radial-gradient(130% 100% at 50% -10%, #24325e 0%, #131c38 45%
 @keyframes drive{ from{ transform:translateX(-70px) scaleX(-1); } to{ transform:translateX(calc(100vw + 70px)) scaleX(-1); } }
 @media (prefers-reduced-motion:reduce){ .menu-fx{ display:none; } }
 
-.logo{ font-size:clamp(70px,14vw,120px); filter:drop-shadow(0 10px 20px rgba(0,0,0,.4)); }
+.logo{ font-size:clamp(70px,14vw,120px); filter:drop-shadow(0 10px 22px rgba(0,0,0,.45)); }
+.logo-emblem{ width:clamp(112px,24vw,170px); height:auto; display:block; margin:0 auto; animation:logofloat 3.8s ease-in-out infinite; }
+@keyframes logofloat{ 50%{ transform:translateY(-6px); } }
+@media (prefers-reduced-motion:reduce){ .logo-emblem{ animation:none; } }
 .title{ font-size:clamp(40px,9vw,74px); font-weight:900; letter-spacing:1px;
   background:linear-gradient(180deg,#fff,#ffd166); -webkit-background-clip:text; background-clip:text; color:transparent;
   text-shadow:0 4px 12px rgba(0,0,0,.3); }

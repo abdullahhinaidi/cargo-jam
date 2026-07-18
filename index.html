@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>زحمة الشحن — Cargo Jam</title>
-  <link rel="stylesheet" href="style.css?v=16" />
+  <link rel="stylesheet" href="style.css?v=17" />
 
   <!-- ============================================================
        إحصاءات GoatCounter (زوّار + أحداث اللاعبين) — بدون كوكيز، بدون بيانات شخصية.
@@ -34,7 +34,28 @@
       </div>
     </div>
     <div class="menu-card">
-      <div class="logo">🚚</div>
+      <div class="logo">
+        <svg class="logo-emblem" viewBox="0 0 130 130" role="img" aria-label="شعار زحمة الشحن">
+          <defs>
+            <radialGradient id="lgBg" cx="0.4" cy="0.35" r="0.85"><stop offset="0" stop-color="#3a4c8e"/><stop offset="1" stop-color="#131c3a"/></radialGradient>
+            <linearGradient id="lgRing" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe38a"/><stop offset="1" stop-color="#e0912a"/></linearGradient>
+            <linearGradient id="lgBox" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd96e"/><stop offset="1" stop-color="#f0a51f"/></linearGradient>
+          </defs>
+          <circle cx="65" cy="65" r="60" fill="url(#lgRing)"/>
+          <circle cx="65" cy="65" r="52" fill="url(#lgBg)"/>
+          <path d="M22 55 a43 43 0 0 1 86 0 z" fill="#ffffff" opacity="0.07"/>
+          <ellipse cx="65" cy="92" rx="36" ry="5.5" fill="#000" opacity="0.28"/>
+          <g stroke-linejoin="round">
+            <line x1="20" y1="60" x2="30" y2="60" stroke="#ffd166" stroke-width="3" stroke-linecap="round" opacity="0.8"/>
+            <rect x="30" y="52" width="42" height="33" rx="5.5" fill="url(#lgBox)" stroke="#7a4f10" stroke-width="3"/>
+            <line x1="51" y1="53" x2="51" y2="84" stroke="#7a4f10" stroke-width="2.5"/>
+            <path d="M72 85 V62 h12 l10 12 v11 z" fill="#2b3450" stroke="#141a2e" stroke-width="3"/>
+            <rect x="76" y="63" width="12" height="10" rx="2.5" fill="#a4d6f2"/>
+            <circle cx="45" cy="88" r="8.5" fill="#15171d" stroke="#0b0d11" stroke-width="2"/><circle cx="45" cy="88" r="3.4" fill="#9aa3b5"/>
+            <circle cx="84" cy="88" r="8.5" fill="#15171d" stroke="#0b0d11" stroke-width="2"/><circle cx="84" cy="88" r="3.4" fill="#9aa3b5"/>
+          </g>
+        </svg>
+      </div>
       <h1 class="title">زحمة الشحن</h1>
       <p class="tagline">وصّل الشحنات.. وفكّ الزحمة!</p>
       <div class="menu-buttons">
@@ -167,7 +188,7 @@
 
 </div>
 
-  <script src="levels.js?v=16"></script>
-  <script src="game.js?v=16"></script>
+  <script src="levels.js?v=17"></script>
+  <script src="game.js?v=17"></script>
 </body>
 </html>
