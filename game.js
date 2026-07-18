@@ -42,6 +42,7 @@ let lives = 3, coins = 0, earned = 0;
 let running = false, paused = false, orderSeq = 0;
 let floaters = [], particles = [];
 let patienceBase = 20;
+const TIME_FACTOR = 1.8;   // strategy tuning: stretch every order's patience so play is about thinking
 let lastTs = 0;
 let doorAnim = [];     // per-bay door open amount 0..1
 
@@ -189,7 +190,7 @@ function loadLevel(i) {
   const lv = LEVELS[i];
   cols = lv.cols; rows = lv.rows; SLOTS = lv.slots; BAYS = lv.bays;
   maxLives = lv.lives; lives = lv.lives; coins = 0; earned = 0;
-  patienceBase = lv.patience;
+  patienceBase = Math.round(lv.patience * TIME_FACTOR);   // longer time = room to think, not race
   bays = new Array(BAYS).fill(null);
   doorAnim = new Array(BAYS).fill(0);
   obstacles = new Set(); obstacleRects = lv.obstacles || [];
@@ -205,7 +206,7 @@ function loadLevel(i) {
   orders = []; floaters = []; particles = []; paused = false; running = true;
   resize();
   for (let s = 0; s < SLOTS; s++) orders.push(makeOrder());
-  fixDeadlock(); updateHUD(); updateMusic(); render();
+  ensureSolvableSeed(); updateHUD(); updateMusic(); render();
 }
 function updateHUD() {
   el.levelValue.textContent = levelIndex + 1;
@@ -229,21 +230,38 @@ function makeOrder() {
   const p = patienceBase * (0.85 + Math.random() * 0.3);
   return { id: ++orderSeq, mat, qty, done: 0, patience: p, maxP: p, flash: 0 };
 }
-function respawnSlot(idx) { orders[idx] = makeOrder(); fixDeadlock(); }
+function respawnSlot(idx, unclog) {
+  // On an expiry while the dock is fully clogged, aim the new order at a parked
+  // truck so the clog clears — a clog costs exactly one heart, never a spiral.
+  if (unclog) {
+    const emptyBay = bays.some(b => b === null);
+    const bayT = trucks.filter(t => t.state === 'bay' || t.state === 'toBay');
+    const canLoad = bayT.some(t => orders.some(o => o && o.mat === t.mat && (o.qty - o.done) > 0));
+    if (!emptyBay && !canLoad && bayT.length) {
+      const t = bayT[Math.floor(Math.random() * bayT.length)];
+      const q = Math.min(3, Math.max(t.loadLeft, remainingByMat(t.mat)));
+      const p = patienceBase * (0.85 + Math.random() * 0.3);
+      orders[idx] = { id: ++orderSeq, mat: t.mat, qty: q, done: 0, patience: p, maxP: p, flash: 0 };
+      return;
+    }
+  }
+  orders[idx] = makeOrder();
+}
 function matchingOrderFor(mat, load) { return orders.find(o => o && o.mat === mat && (o.qty - o.done) >= load) || null; }
-function fixDeadlock() {
+// STRATEGY MODE: no ongoing auto-rescue. Filling your limited bays with trucks that
+// aren't demanded now clogs the dock and lets orders expire (costing hearts) — so
+// which truck you stage is a real decision. Demand is still drawn from remaining
+// supply, so a solution always exists; you win by planning, not racing.
+function fixDeadlock() {}
+// one-time fairness: guarantee the opening board has at least one deliverable truck
+function ensureSolvableSeed() {
   const reach = trucks.filter(t => t.state === 'depot' && canExit(t));
-  const emptyBay = bays.some(b => b === null);
-  const bayT = trucks.filter(t => t.state === 'bay' || t.state === 'toBay');
-  const canAdd = reach.length && emptyBay;
-  const canLoad = bayT.some(t => orders.some(o => o && o.mat === t.mat && (o.qty - o.done) > 0));
-  if (canAdd || canLoad) return;
-  const pool = bayT.length ? bayT : reach; if (!pool.length) return;
-  const t = pool[Math.floor(Math.random() * pool.length)];
-  let idx = orders.findIndex(o => !o); if (idx < 0) idx = Math.floor(Math.random() * orders.length);
+  if (!reach.length) return;
+  if (reach.some(t => orders.some(o => o && o.mat === t.mat && (o.qty - o.done) > 0))) return;
+  const t = reach[Math.floor(Math.random() * reach.length)];
   const q = Math.min(3, Math.max(t.loadLeft, remainingByMat(t.mat)));
   const p = patienceBase * (0.85 + Math.random() * 0.3);
-  orders[idx] = { id: ++orderSeq, mat: t.mat, qty: q, done: 0, patience: p, maxP: p, flash: 0 };
+  orders[0] = { id: ++orderSeq, mat: t.mat, qty: q, done: 0, patience: p, maxP: p, flash: 0 };
 }
 
 /* ---------- Geometry / layout ---------- */
@@ -383,7 +401,7 @@ function render() {
     for (let i = 0; i < orders.length; i++) { const o = orders[i]; if (!o) continue;
       if (o.flash > 0) o.flash = Math.max(0, o.flash - dt);
       o.patience -= dt;
-      if (o.patience <= 0) { lives--; sndExpire(); respawnSlot(i); updateHUD(); if (lives <= 0) { endLose(); break; } } }
+      if (o.patience <= 0) { lives--; sndExpire(); respawnSlot(i, true); updateHUD(); if (lives <= 0) { endLose(); break; } } }
   }
   for (const f of floaters) f.t = Math.min(1, f.t + dt / 0.4);
   floaters = floaters.filter(f => f.t < 1);
