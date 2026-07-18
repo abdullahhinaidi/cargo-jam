@@ -163,23 +163,24 @@ function buildProfile() {
 /* ---------- Audio ---------- */
 let audioCtx = null;
 function actx() { if (!audioCtx) { try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } return audioCtx; }
+function sfxOk() { return save.sfx && !document.hidden; }   // never play SFX in a backgrounded tab
 function beep(freq, dur = 0.08, type = 'sine', vol = 0.12) {
-  if (!save.sfx) return; const a = actx(); if (!a) return;
+  if (!sfxOk()) return; const a = actx(); if (!a) return;
   try {
-    const o = a.createOscillator(), g = a.createGain();
-    o.type = type; o.frequency.value = freq; g.gain.value = vol;
-    o.connect(g); g.connect(a.destination); o.start();
-    g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + dur);
-    o.stop(a.currentTime + dur);
+    const o = a.createOscillator(), g = a.createGain(), t0 = a.currentTime;
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(vol, t0 + 0.01);  // soft attack, no click
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(g); g.connect(a.destination); o.start(t0); o.stop(t0 + dur + 0.02);
   } catch (e) {}
 }
 // ---- richer synthesis layer: master bus, filtered noise, swept tones ----
 let master = null;
-function mgain() { const a = actx(); if (!a) return null; if (!master) { master = a.createGain(); master.gain.value = 0.85; master.connect(a.destination); } return master; }
+function mgain() { const a = actx(); if (!a) return null; if (!master) { master = a.createGain(); master.gain.value = 0.62; master.connect(a.destination); } return master; }
 let _noise = null;
 function noiseBuf() { const a = actx(); if (!a) return null; if (_noise) return _noise; const n = Math.floor(a.sampleRate * 0.6); const b = a.createBuffer(1, n, a.sampleRate); const d = b.getChannelData(0); for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1; _noise = b; return b; }
 function tone(freq, dur, type, vol, sweepTo, when) {
-  if (!save.sfx) return; const a = actx(); if (!a) return; try {
+  if (!sfxOk()) return; const a = actx(); if (!a) return; try {
     const o = a.createOscillator(), g = a.createGain(), t0 = a.currentTime + (when || 0);
     o.type = type || 'sine'; o.frequency.setValueAtTime(freq, t0);
     if (sweepTo) o.frequency.exponentialRampToValueAtTime(Math.max(1, sweepTo), t0 + dur);
@@ -189,18 +190,19 @@ function tone(freq, dur, type, vol, sweepTo, when) {
   } catch (e) {}
 }
 function noise(dur, filter, freq, q, vol, sweepTo) {
-  if (!save.sfx) return; const a = actx(); if (!a) return; try {
+  if (!sfxOk()) return; const a = actx(); if (!a) return; try {
     const s = a.createBufferSource(); s.buffer = noiseBuf();
     const f = a.createBiquadFilter(); f.type = filter || 'bandpass'; f.frequency.value = freq; if (q) f.Q.value = q;
-    const g = a.createGain(); g.gain.setValueAtTime(vol || 0.1, a.currentTime);
-    if (sweepTo) f.frequency.exponentialRampToValueAtTime(Math.max(1, sweepTo), a.currentTime + dur);
-    g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + dur);
-    s.connect(f); f.connect(g); g.connect(mgain()); s.start(); s.stop(a.currentTime + dur + 0.02);
+    const g = a.createGain(), t0 = a.currentTime, v = vol || 0.1;
+    g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(v, t0 + 0.012);  // soft attack, no click/whoosh onset
+    if (sweepTo) f.frequency.exponentialRampToValueAtTime(Math.max(1, sweepTo), t0 + dur);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    s.connect(f); f.connect(g); g.connect(mgain()); s.start(t0); s.stop(t0 + dur + 0.02);
   } catch (e) {}
 }
 const sndDrive  = () => { tone(70, 0.22, 'sawtooth', 0.05, 150); tone(120, 0.22, 'square', 0.03, 210); };        // engine revs up
 const sndLoad   = () => { tone(240, 0.05, 'square', 0.05, 180); noise(0.05, 'bandpass', 1400, 4, 0.05); };        // cargo clunk
-const sndDepart = () => { noise(0.28, 'highpass', 1800, 0.7, 0.09, 500); tone(150, 0.16, 'triangle', 0.05, 110); }; // air-brake hiss + pull away
+const sndDepart = () => { noise(0.2, 'lowpass', 1200, 0.6, 0.045, 500); tone(150, 0.16, 'triangle', 0.045, 110); }; // gentle air-brake + pull away
 const sndDock   = () => { tone(520, 0.05, 'sine', 0.05); setTimeout(() => tone(390, 0.06, 'sine', 0.05), 60); };  // reverse confirm
 const sndDoor   = () => noise(0.4, 'lowpass', 520, 0.8, 0.05, 300);                                               // roll-up door rumble
 const sndBlocked= () => tone(110, 0.16, 'sawtooth', 0.09, 80);                                                    // low honk
@@ -214,7 +216,7 @@ const sndLose   = () => [440, 330, 262, 196].forEach((f, i) => setTimeout(() => 
 const MUSIC_NOTES = [196, 261.6, 329.6, 392, 329.6, 261.6, 220, 261.6];
 let musicStep = 0;
 function musicTick() {
-  if (!save.music || !running || paused) return;
+  if (!save.music || !running || paused || document.hidden) return;
   const a = actx(); if (!a) return;
   try {
     const f = MUSIC_NOTES[musicStep % MUSIC_NOTES.length]; musicStep++;
