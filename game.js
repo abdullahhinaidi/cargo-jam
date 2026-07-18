@@ -564,6 +564,61 @@ function drawGround() {
   ctx.fillStyle = g; ctx.fillRect(0, 0, L.w, L.h);
 }
 
+// custom order-card / floater icon per material — matches each truck's cargo art
+function drawMatIcon(key, cx, cy, S) {
+  ctx.save(); ctx.translate(cx, cy);
+  const r = S*0.5;
+  if (key === 'wood') {
+    const pos = [[-r*0.42, r*0.3],[r*0.42, r*0.3],[0,-r*0.34]], lr = r*0.44;
+    for (const [px,py] of pos) {
+      ctx.fillStyle = '#6f4a22'; ctx.beginPath(); ctx.arc(px,py,lr,0,7); ctx.fill();
+      ctx.fillStyle = '#caa066'; ctx.beginPath(); ctx.arc(px,py,lr*0.8,0,7); ctx.fill();
+      ctx.strokeStyle = '#8a5f30'; ctx.lineWidth = Math.max(1,lr*0.13); ctx.beginPath(); ctx.arc(px,py,lr*0.5,0,7); ctx.stroke();
+      ctx.fillStyle = '#8a5f30'; ctx.beginPath(); ctx.arc(px,py,lr*0.15,0,7); ctx.fill();
+    }
+  } else if (key === 'steel') {
+    const w = r*1.55, h = r*1.5, fh = h*0.26, wt = w*0.28;
+    const g = ctx.createLinearGradient(-w/2,0,w/2,0);
+    g.addColorStop(0,'#6b7688'); g.addColorStop(0.42,'#eef3f8'); g.addColorStop(0.56,'#c8d0da'); g.addColorStop(1,'#525c6c');
+    const part = (x,y,ww,hh,rr) => { ctx.fillStyle = g; roundRect(x,y,ww,hh,rr); ctx.fill(); ctx.strokeStyle = 'rgba(28,34,46,0.6)'; ctx.lineWidth = Math.max(1,r*0.05); ctx.stroke(); };
+    part(-wt/2,-h/2+fh*0.6,wt,h-fh*1.2,1);
+    part(-w/2,-h/2,w,fh,2);
+    part(-w/2,h/2-fh,w,fh,2);
+  } else if (key === 'oil') {
+    const w = r*1.05, h = r*1.5;
+    ctx.fillStyle = '#15181f'; roundRect(-w/2,-h/2,w,h,w*0.2); ctx.fill();
+    const g = ctx.createLinearGradient(-w/2,0,w/2,0); g.addColorStop(0,'#20242c'); g.addColorStop(0.5,'#525a68'); g.addColorStop(1,'#191d24');
+    ctx.fillStyle = g; roundRect(-w/2+1,-h/2+1,w-2,h-2,w*0.18); ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.lineWidth = Math.max(1,r*0.05);
+    for (const f of [0.28,0.72]) { const yy = -h/2+h*f; line(-w/2+2,yy,w/2-2,yy); }
+    ctx.fillStyle = '#e8871e'; roundRect(-w/2+1,-h*0.09,w-2,h*0.18,2); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.25)'; roundRect(-w*0.28,-h/2+2,w*0.12,h-4,2); ctx.fill();
+  } else if (key === 'food') {
+    const ar = r*0.74;
+    const g = ctx.createRadialGradient(-ar*0.3,-ar*0.2,ar*0.1,0,ar*0.15,ar*1.2);
+    g.addColorStop(0,'#ff8a7a'); g.addColorStop(0.55,'#e8524a'); g.addColorStop(1,'#a8322b');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0,ar*0.15,ar,0,7); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.beginPath(); ctx.arc(-ar*0.32,-ar*0.18,ar*0.24,0,7); ctx.fill();
+    ctx.strokeStyle = '#5b3a1a'; ctx.lineWidth = Math.max(1.5,ar*0.14); ctx.beginPath(); ctx.moveTo(0,-ar*0.72); ctx.lineTo(ar*0.05,-ar*1.08); ctx.stroke();
+    ctx.fillStyle = '#4a9d3a'; ctx.save(); ctx.translate(ar*0.32,-ar*0.95); ctx.rotate(-0.6); ctx.beginPath(); ctx.ellipse(0,0,ar*0.3,ar*0.15,0,0,7); ctx.fill(); ctx.restore();
+  } else if (key === 'goods') {
+    const s = r*1.4;
+    const g = ctx.createLinearGradient(0,-s/2,0,s/2); g.addColorStop(0,'#e2b985'); g.addColorStop(1,'#bf8c4c');
+    ctx.fillStyle = g; roundRect(-s/2,-s/2,s,s,3); ctx.fill();
+    ctx.strokeStyle = '#8a5f30'; ctx.lineWidth = Math.max(1.5,r*0.08); roundRect(-s/2,-s/2,s,s,3); ctx.stroke();
+    ctx.fillStyle = 'rgba(160,120,70,0.55)'; roundRect(-s*0.11,-s/2,s*0.22,s,1); ctx.fill();
+    line(-s/2,-s*0.06,s/2,-s*0.06);
+  } else if (key === 'water') {
+    const ds = r*0.8, dy = r*0.12;
+    const g = ctx.createRadialGradient(-ds*0.3,dy-ds*0.3,ds*0.1,0,dy,ds*1.3);
+    g.addColorStop(0,'#bff1ff'); g.addColorStop(0.5,'#2bb8e6'); g.addColorStop(1,'#127399');
+    ctx.fillStyle = g; ctx.beginPath();
+    ctx.moveTo(0,dy-ds*1.35); ctx.bezierCurveTo(ds*1.1,dy-ds*0.05,ds*0.85,dy+ds,0,dy+ds); ctx.bezierCurveTo(-ds*0.85,dy+ds,-ds*1.1,dy-ds*0.05,0,dy-ds*1.35); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.beginPath(); ctx.ellipse(-ds*0.26,dy+ds*0.25,ds*0.15,ds*0.27,0,0,7); ctx.fill();
+  }
+  ctx.restore();
+}
+
 function drawBoard() {
   // "shipping orders" ticket rail
   for (let i = 0; i < SLOTS; i++) {
@@ -574,9 +629,7 @@ function drawBoard() {
     ctx.fillStyle = 'rgba(0,0,0,0.12)'; roundRect(rc.x, rc.y, rc.w, rc.h * 0.16, 6); ctx.fill(); // clip strip
     ctx.fillStyle = '#c9c2a8'; ctx.fillRect(rc.x + rc.w * 0.44, rc.y - 3, rc.w * 0.12, 6); // clip
     if (!o) { ctx.fillStyle = '#9a9482'; ctx.font = `${Math.floor(CELL*0.4)}px system-ui`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('✓', rc.x + rc.w/2, rc.y + rc.h/2); continue; }
-    const mat = MATERIALS[o.mat];
-    ctx.font = `${Math.floor(CELL*0.56)}px system-ui`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(mat.icon, rc.x + rc.w/2, rc.y + rc.h*0.42);
+    drawMatIcon(o.mat, rc.x + rc.w/2, rc.y + rc.h*0.42, CELL*0.66);
     ctx.fillStyle = '#2a2a2a'; ctx.font = `bold ${Math.floor(CELL*0.32)}px system-ui`;
     ctx.fillText('× ' + (o.qty - o.done), rc.x + rc.w/2, rc.y + rc.h*0.72);
     const bx = rc.x + rc.w*0.12, bw = rc.w*0.76, by = rc.y + rc.h - 11, bh = 5;
@@ -854,22 +907,29 @@ function drawCargo(mat, bedTop, bedBot, w) {
       ctx.strokeStyle = dk; ctx.lineWidth = 1.3; line(xx+ww2/2, yy+1, xx+ww2/2, yy+hh2-1); line(xx+1, yy+hh2/2, xx+ww2-1, yy+hh2/2);
       ctx.fillStyle = 'rgba(255,255,255,0.16)'; roundRect(xx+2, yy+2, ww2*0.42, hh2*0.42, 2); ctx.fill(); }
   } else {
-    // fresh-produce crate packed with glossy apples (red + a few green)
-    ctx.fillStyle = '#7a5327'; roundRect(bx, bedTop, bw, bl, 4); ctx.fill();
-    ctx.fillStyle = '#a9793f'; roundRect(bx+bw*0.05, bedTop+bl*0.03, bw*0.9, bl*0.94, 3); ctx.fill();
-    ctx.strokeStyle = 'rgba(0,0,0,0.18)'; ctx.lineWidth = Math.max(1, bw*0.02);
-    for (let i = 1; i < 3; i++) { const yy = bedTop+bl*(i/3); line(bx+bw*0.05, yy, bx+bw*0.95, yy); }
-    ctx.strokeStyle = '#8a5f30'; ctx.lineWidth = Math.max(1.5, bw*0.045); roundRect(bx+bw*0.04, bedTop+bl*0.02, bw*0.92, bl*0.96, 3); ctx.stroke();
-    const acols = 2, ar = bw*0.19, arows = Math.max(2, Math.round(bl/(ar*2.1))), gx0 = bx+bw*0.5 - (acols-1)*ar*1.05;
-    for (let r = 0; r < arows; r++) for (let c = 0; c < acols; c++) {
-      const ax = gx0 + c*ar*2.1, ay = bedTop + ar*1.15 + r*((bl-ar*2.3)/(Math.max(1, arows-1)));
-      const green = (r+c) % 3 === 2, base = green ? '#5aa63a' : col, drk = green ? '#3f7a26' : dk;
-      const g = ctx.createRadialGradient(ax-ar*0.3, ay-ar*0.35, ar*0.1, ax, ay, ar);
-      g.addColorStop(0, green ? '#7cc857' : '#ff7a6a'); g.addColorStop(0.55, base); g.addColorStop(1, drk);
-      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(ax, ay, ar, 0, 7); ctx.fill();
-      ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.beginPath(); ctx.arc(ax-ar*0.32, ay-ar*0.36, ar*0.22, 0, 7); ctx.fill();
-      ctx.strokeStyle = '#5b3a1a'; ctx.lineWidth = Math.max(1, ar*0.09);
-      ctx.beginPath(); ctx.moveTo(ax, ay-ar*0.9); ctx.lineTo(ax+ar*0.12, ay-ar*1.15); ctx.stroke();
+    // crates of assorted produce: box-truck layout, each crate a different fruit
+    ctx.fillStyle = '#2b303c'; roundRect(bx, bedTop, bw, bl, 4); ctx.fill();
+    const cN = 2, rN = Math.max(2, Math.round(bl/(bw*0.55))), cw = bw/cN, ch = bl/rN;
+    const fruits = [['#e8524a','#ff8a7a','#b83a33'],   // red apples
+                    ['#ef8b2c','#ffb15e','#c26a12'],   // oranges
+                    ['#6ab04c','#93d36f','#478032'],   // green apples
+                    ['#8e6fd0','#b79bec','#654a9c'],   // grapes/plums
+                    ['#f2c53d','#ffe27a','#c79a17']];  // lemons
+    let fi = 0;
+    for (let ri = 0; ri < rN; ri++) for (let ci = 0; ci < cN; ci++) {
+      const xx = bx+ci*cw+2, yy = bedTop+ri*ch+2, ww2 = cw-4, hh2 = ch-4;
+      ctx.fillStyle = '#6f4a22'; roundRect(xx, yy, ww2, hh2, 3); ctx.fill();
+      ctx.fillStyle = '#9a6c34'; roundRect(xx+ww2*0.08, yy+hh2*0.08, ww2*0.84, hh2*0.84, 2); ctx.fill();
+      const F = fruits[fi % fruits.length]; fi++;
+      const fr = Math.min(ww2, hh2)*0.21, off = fr*1.02, cx0 = xx+ww2/2, cy0 = yy+hh2/2;
+      for (const [dx, dy] of [[-off,-off],[off,-off],[-off,off],[off,off]]) {
+        const px = cx0+dx, py = cy0+dy;
+        const g = ctx.createRadialGradient(px-fr*0.3, py-fr*0.35, fr*0.1, px, py, fr);
+        g.addColorStop(0, F[1]); g.addColorStop(0.55, F[0]); g.addColorStop(1, F[2]);
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(px, py, fr, 0, 7); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.beginPath(); ctx.arc(px-fr*0.3, py-fr*0.32, fr*0.28, 0, 7); ctx.fill();
+      }
+      ctx.strokeStyle = '#4a2f15'; ctx.lineWidth = Math.max(1, ww2*0.06); roundRect(xx, yy, ww2, hh2, 3); ctx.stroke();
     }
   }
 }
@@ -886,8 +946,7 @@ function drawParticles() {
 }
 function drawFloaters() {
   for (const f of floaters) { const k = ease(f.t); const x = f.x+(f.tx-f.x)*k, y = f.y+(f.ty-f.y)*k;
-    ctx.globalAlpha = 1-f.t*0.5; ctx.font = `${Math.floor(CELL*0.5)}px system-ui`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText((MATERIALS[f.mat]||MATERIALS.wood).icon, x, y); ctx.globalAlpha = 1; }
+    ctx.globalAlpha = 1-f.t*0.5; drawMatIcon(f.mat, x, y, CELL*0.58); ctx.globalAlpha = 1; }
 }
 function drawVignette() {
   const g = ctx.createRadialGradient(L.w/2, L.h*0.42, L.h*0.18, L.w/2, L.h*0.5, L.h*0.75);
