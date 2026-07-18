@@ -20,7 +20,7 @@ function totalStars() { return Object.values(save.stars).reduce((a, b) => a + b,
 /* ---------- Materials ---------- */
 const MATERIALS = {
   wood:  { color: '#a8703a', dark: '#754c22', icon: '🪵', name: 'خشب',   cargo: 'logs' },
-  oil:   { color: '#3a4150', dark: '#242a34', icon: '🛢️', name: 'نفط',   cargo: 'liquid' },
+  oil:   { color: '#3a4150', dark: '#242a34', icon: '🛢️', name: 'نفط',   cargo: 'oil' },
   food:  { color: '#e8524a', dark: '#b83a33', icon: '🍎', name: 'غذاء',  cargo: 'produce' },
   steel: { color: '#7d8ea6', dark: '#576578', icon: '🔩', name: 'حديد',  cargo: 'metal' },
   goods: { color: '#d79a5c', dark: '#a5733c', icon: '📦', name: 'بضائع', cargo: 'boxes' },
@@ -784,20 +784,68 @@ function drawTruckBody(mat, size, opt) {
 
 function drawCargo(mat, bedTop, bedBot, w) {
   const bw = w*0.9, bx = -bw/2, bl = bedBot - bedTop, col = mat.color, dk = mat.dark, cat = mat.cargo;
-  if (cat === 'liquid') {
+  if (cat === 'oil') {
+    // metallic hazmat tanker: shaded steel cylinder, ribs, hatch, orange hazard placard
+    ctx.fillStyle = '#20242c'; roundRect(bx, bedTop, bw, bl, bw*0.46); ctx.fill();
+    const tg = ctx.createLinearGradient(bx, 0, bx+bw, 0);
+    tg.addColorStop(0, '#20242c'); tg.addColorStop(0.28, '#525a68'); tg.addColorStop(0.44, '#828b9b');
+    tg.addColorStop(0.6, '#4a515e'); tg.addColorStop(1, '#191d24');
+    ctx.fillStyle = tg; roundRect(bx+bw*0.05, bedTop+bl*0.02, bw*0.9, bl*0.96, bw*0.4); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.5)'; roundRect(bx+bw*0.34, bedTop+bl*0.05, bw*0.08, bl*0.9, bw*0.05); ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.30)'; ctx.lineWidth = Math.max(1.5, bw*0.03);
+    for (let i = 1; i <= 3; i++) { const yy = bedTop+bl*(i/4); line(bx+bw*0.05, yy, bx+bw*0.95, yy); }
+    const hy = bedTop+bl*0.16, hr = bw*0.15;
+    ctx.fillStyle = '#3a4150'; ctx.beginPath(); ctx.arc(0, hy, hr, 0, 7); ctx.fill();
+    ctx.strokeStyle = '#767f8f'; ctx.lineWidth = Math.max(1, bw*0.03); ctx.beginPath(); ctx.arc(0, hy, hr*0.72, 0, 7); ctx.stroke();
+    const ph = bw*0.3*0.7, py = bedTop+bl*0.66;
+    ctx.save(); ctx.translate(0, py); ctx.rotate(Math.PI/4);
+    ctx.fillStyle = '#e8871e'; roundRect(-ph/2, -ph/2, ph, ph, ph*0.14); ctx.fill();
+    ctx.strokeStyle = '#1b1e2a'; ctx.lineWidth = Math.max(1, bw*0.03); ctx.stroke(); ctx.restore();
+  } else if (cat === 'liquid') {
+    // clean glossy water tank
     ctx.fillStyle = dk; roundRect(bx, bedTop, bw, bl, bw*0.46); ctx.fill();
-    ctx.fillStyle = col; roundRect(bx+bw*0.06, bedTop+bl*0.03, bw*0.88, bl*0.94, bw*0.42); ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,0.28)'; roundRect(bx+bw*0.2, bedTop+bl*0.06, bw*0.22, bl*0.88, bw*0.18); ctx.fill();
-    ctx.strokeStyle = 'rgba(0,0,0,0.22)'; ctx.lineWidth = 2; for (let i = 1; i <= 2; i++) { const yy = bedTop+bl*(i/3); line(bx+2, yy, bx+bw-2, yy); }
-    ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.beginPath(); ctx.arc(0, bedTop+bl*0.2, bw*0.1, 0, 7); ctx.fill();
-  } else if (cat === 'logs' || cat === 'metal') {
-    ctx.fillStyle = '#333844'; roundRect(bx, bedTop, bw, bl, 4); ctx.fill();
-    const n = 3, lw = bw/n;
-    for (let i = 0; i < n; i++) { const lx = bx+i*lw+1;
-      ctx.fillStyle = col; roundRect(lx, bedTop+2, lw-2, bl-4, lw*(cat==='metal'?0.3:0.42)); ctx.fill();
-      if (cat === 'metal') { ctx.fillStyle = 'rgba(255,255,255,0.4)'; roundRect(lx+lw*0.34, bedTop+3, lw*0.16, bl-6, 2); ctx.fill(); ctx.fillStyle = dk; ctx.beginPath(); ctx.arc(lx+lw/2, bedTop+lw*0.5, lw*0.24, 0, 7); ctx.fill(); }
-      else { ctx.fillStyle = 'rgba(255,255,255,0.18)'; roundRect(lx+lw*0.12, bedTop+2, lw*0.28, bl-4, lw*0.3); ctx.fill(); ctx.strokeStyle = dk; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.arc(lx+lw/2, bedTop+lw*0.5, lw*0.26, 0, 7); ctx.stroke(); ctx.beginPath(); ctx.arc(lx+lw/2, bedTop+lw*0.5, lw*0.12, 0, 7); ctx.stroke(); }
+    const tg = ctx.createLinearGradient(bx, 0, bx+bw, 0);
+    tg.addColorStop(0, dk); tg.addColorStop(0.3, col); tg.addColorStop(0.46, '#9be3fb'); tg.addColorStop(0.62, col); tg.addColorStop(1, dk);
+    ctx.fillStyle = tg; roundRect(bx+bw*0.05, bedTop+bl*0.02, bw*0.9, bl*0.96, bw*0.4); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.55)'; roundRect(bx+bw*0.32, bedTop+bl*0.05, bw*0.09, bl*0.9, bw*0.05); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.22)'; ctx.lineWidth = Math.max(1.5, bw*0.03);
+    for (let i = 1; i <= 3; i++) { const yy = bedTop+bl*(i/4); line(bx+bw*0.05, yy, bx+bw*0.95, yy); }
+    const hr = bw*0.15, hy = bedTop+bl*0.16;
+    ctx.fillStyle = '#1689b3'; ctx.beginPath(); ctx.arc(0, hy, hr, 0, 7); ctx.fill();
+    ctx.strokeStyle = '#bdeeff'; ctx.lineWidth = Math.max(1, bw*0.03); ctx.beginPath(); ctx.arc(0, hy, hr*0.72, 0, 7); ctx.stroke();
+    ctx.fillStyle = '#eaf9ff'; const dy = bedTop+bl*0.64, ds = bw*0.13;               // water droplet mark
+    ctx.beginPath(); ctx.moveTo(0, dy-ds); ctx.bezierCurveTo(ds, dy-ds*0.1, ds*0.8, dy+ds, 0, dy+ds); ctx.bezierCurveTo(-ds*0.8, dy+ds, -ds, dy-ds*0.1, 0, dy-ds); ctx.fill();
+  } else if (cat === 'logs') {
+    // flatbed of round timber: cylindrical logs, sawn ring-ends, binding straps
+    ctx.fillStyle = '#2f2a24'; roundRect(bx, bedTop, bw, bl, 4); ctx.fill();
+    ctx.fillStyle = '#241f1a'; roundRect(bx, bedTop, bw*0.06, bl, 2); ctx.fill(); roundRect(bx+bw*0.94, bedTop, bw*0.06, bl, 2); ctx.fill();
+    const n = 4, lw = (bw*0.9)/n, x0 = bx + bw*0.05, endH = lw*0.9, light = '#c98f52';
+    for (let i = 0; i < n; i++) { const lx = x0 + i*lw;
+      const g = ctx.createLinearGradient(lx, 0, lx+lw, 0);
+      g.addColorStop(0, dk); g.addColorStop(0.34, col); g.addColorStop(0.46, light); g.addColorStop(0.62, col); g.addColorStop(1, dk);
+      ctx.fillStyle = g; roundRect(lx+0.5, bedTop, lw-1, bl, lw*0.28); ctx.fill();
+      const ex = lx+lw/2, ey = bedTop+endH*0.5, er = lw*0.4;
+      ctx.fillStyle = '#caa066'; ctx.beginPath(); ctx.arc(ex, ey, er, 0, 7); ctx.fill();
+      ctx.strokeStyle = 'rgba(90,60,30,0.7)'; ctx.lineWidth = Math.max(1, lw*0.05);
+      ctx.beginPath(); ctx.arc(ex, ey, er*0.62, 0, 7); ctx.stroke(); ctx.beginPath(); ctx.arc(ex, ey, er*0.3, 0, 7); ctx.stroke();
+      ctx.fillStyle = '#8a5f30'; ctx.beginPath(); ctx.arc(ex, ey, er*0.12, 0, 7); ctx.fill();
     }
+    ctx.fillStyle = 'rgba(20,16,12,0.9)';
+    for (const f of [0.45, 0.8]) { const sy = bedTop + bl*f; roundRect(bx, sy-lw*0.06, bw, lw*0.12, 2); ctx.fill(); }
+  } else if (cat === 'metal') {
+    // bundle of shiny steel pipes with open hollow ends
+    ctx.fillStyle = '#22262e'; roundRect(bx, bedTop, bw, bl, 4); ctx.fill();
+    const n = 4, lw = (bw*0.92)/n, x0 = bx + bw*0.04, endH = lw;
+    for (let i = 0; i < n; i++) { const lx = x0 + i*lw;
+      const g = ctx.createLinearGradient(lx, 0, lx+lw, 0);
+      g.addColorStop(0, '#3f4757'); g.addColorStop(0.32, '#8b95a7'); g.addColorStop(0.46, '#dfe6ef'); g.addColorStop(0.62, '#7c8698'); g.addColorStop(1, '#2c333f');
+      ctx.fillStyle = g; roundRect(lx+0.5, bedTop, lw-1, bl, lw*0.32); ctx.fill();
+      const ex = lx+lw/2, ey = bedTop+endH*0.5, er = lw*0.4;
+      ctx.fillStyle = '#c2cad6'; ctx.beginPath(); ctx.arc(ex, ey, er, 0, 7); ctx.fill();
+      ctx.fillStyle = '#161a20'; ctx.beginPath(); ctx.arc(ex, ey, er*0.62, 0, 7); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.beginPath(); ctx.arc(ex-er*0.28, ey-er*0.3, er*0.18, 0, 7); ctx.fill();
+    }
+    ctx.fillStyle = 'rgba(18,20,26,0.85)'; { const sy = bedTop + bl*0.82; roundRect(bx, sy-lw*0.06, bw, lw*0.12, 2); ctx.fill(); }
   } else if (cat === 'boxes') {
     ctx.fillStyle = '#2b303c'; roundRect(bx, bedTop, bw, bl, 4); ctx.fill();
     const rN = Math.max(2, Math.round(bl/(bw*0.55))), cN = 2, cw = bw/cN, ch = bl/rN;
@@ -806,10 +854,23 @@ function drawCargo(mat, bedTop, bedBot, w) {
       ctx.strokeStyle = dk; ctx.lineWidth = 1.3; line(xx+ww2/2, yy+1, xx+ww2/2, yy+hh2-1); line(xx+1, yy+hh2/2, xx+ww2-1, yy+hh2/2);
       ctx.fillStyle = 'rgba(255,255,255,0.16)'; roundRect(xx+2, yy+2, ww2*0.42, hh2*0.42, 2); ctx.fill(); }
   } else {
-    ctx.fillStyle = '#6b4a2a'; roundRect(bx, bedTop, bw, bl, 4); ctx.fill();
-    ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = 1.5; for (let i = 1; i < 3; i++) { const yy = bedTop+bl*(i/3); line(bx, yy, bx+bw, yy); }
-    const fr = bw*0.17, pts = [[-bw*0.22,bedTop+bl*0.24],[bw*0.2,bedTop+bl*0.28],[0,bedTop+bl*0.52],[-bw*0.2,bedTop+bl*0.76],[bw*0.22,bedTop+bl*0.74]];
-    for (const [px, py] of pts) { if (py > bedBot-fr) continue; ctx.fillStyle = col; ctx.beginPath(); ctx.arc(px, py, fr, 0, 7); ctx.fill(); ctx.fillStyle = 'rgba(255,255,255,0.32)'; ctx.beginPath(); ctx.arc(px-fr*0.3, py-fr*0.3, fr*0.35, 0, 7); ctx.fill(); }
+    // fresh-produce crate packed with glossy apples (red + a few green)
+    ctx.fillStyle = '#7a5327'; roundRect(bx, bedTop, bw, bl, 4); ctx.fill();
+    ctx.fillStyle = '#a9793f'; roundRect(bx+bw*0.05, bedTop+bl*0.03, bw*0.9, bl*0.94, 3); ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.18)'; ctx.lineWidth = Math.max(1, bw*0.02);
+    for (let i = 1; i < 3; i++) { const yy = bedTop+bl*(i/3); line(bx+bw*0.05, yy, bx+bw*0.95, yy); }
+    ctx.strokeStyle = '#8a5f30'; ctx.lineWidth = Math.max(1.5, bw*0.045); roundRect(bx+bw*0.04, bedTop+bl*0.02, bw*0.92, bl*0.96, 3); ctx.stroke();
+    const acols = 2, ar = bw*0.19, arows = Math.max(2, Math.round(bl/(ar*2.1))), gx0 = bx+bw*0.5 - (acols-1)*ar*1.05;
+    for (let r = 0; r < arows; r++) for (let c = 0; c < acols; c++) {
+      const ax = gx0 + c*ar*2.1, ay = bedTop + ar*1.15 + r*((bl-ar*2.3)/(Math.max(1, arows-1)));
+      const green = (r+c) % 3 === 2, base = green ? '#5aa63a' : col, drk = green ? '#3f7a26' : dk;
+      const g = ctx.createRadialGradient(ax-ar*0.3, ay-ar*0.35, ar*0.1, ax, ay, ar);
+      g.addColorStop(0, green ? '#7cc857' : '#ff7a6a'); g.addColorStop(0.55, base); g.addColorStop(1, drk);
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(ax, ay, ar, 0, 7); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.beginPath(); ctx.arc(ax-ar*0.32, ay-ar*0.36, ar*0.22, 0, 7); ctx.fill();
+      ctx.strokeStyle = '#5b3a1a'; ctx.lineWidth = Math.max(1, ar*0.09);
+      ctx.beginPath(); ctx.moveTo(ax, ay-ar*0.9); ctx.lineTo(ax+ar*0.12, ay-ar*1.15); ctx.stroke();
+    }
   }
 }
 
