@@ -16,6 +16,7 @@ function loadSave() {
 }
 function persist() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {} }
 function totalStars() { return Object.values(save.stars).reduce((a, b) => a + b, 0); }
+function fmt(n) { try { return (n || 0).toLocaleString('en-US'); } catch (e) { return '' + (n || 0); } }  // 43595 → 43,595
 
 /* ---------- Materials ---------- */
 const MATERIALS = {
@@ -64,7 +65,7 @@ let musicTimer = null;
 function showScreen(name) {
   screens.forEach(s => $(s).classList.toggle('hidden', s !== name));
   hideOverlay('pauseOverlay'); hideOverlay('resultOverlay'); hideOverlay('startOverlay');
-  if (name === 'menu') { $('menuStars').textContent = '⭐ ' + totalStars() + ' / ' + (LEVELS.length * 3); $('menuCoins').textContent = '🪙 ' + save.coins; }
+  if (name === 'menu') { $('menuStars').textContent = '⭐ ' + totalStars() + ' / ' + (LEVELS.length * 3); $('menuCoins').textContent = '🪙 ' + fmt(save.coins); }
   if (name === 'levels') buildLevelSelect();
   if (name === 'profile') buildProfile();
   if (name === 'game') updateMusic(); else updateMusic();
@@ -131,7 +132,7 @@ function buildProfile() {
 
   const m = profileMetrics();
   $('pfStars').textContent = s;
-  $('pfCoins').textContent = save.coins;
+  $('pfCoins').textContent = fmt(save.coins);
   $('pfLevels').textContent = m.levels;
   $('pfPerfect').textContent = m.perfect;
 
@@ -332,7 +333,7 @@ function updateHUD() {
   el.levelValue.textContent = levelIndex + 1;
   el.livesValue.innerHTML = heartsHTML();
   el.livesBox.classList.toggle('low', lives <= 1);
-  el.coinsValue.textContent = save.coins;      // live persistent wallet
+  el.coinsValue.textContent = fmt(save.coins);      // live persistent wallet (thousands separated)
   el.leftValue.textContent = trucks.filter(t => !t.done).length;
   updateToolBar();
 }
@@ -741,14 +742,14 @@ function drawBoard() {
     ctx.fillStyle = '#c9c2a8'; ctx.fillRect(rc.x + rc.w * 0.44, rc.y - 3, rc.w * 0.12, 6); // clip
     if (!o) { ctx.fillStyle = '#9a9482'; ctx.font = `${Math.floor(CELL*0.4)}px system-ui`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('✓', rc.x + rc.w/2, rc.y + rc.h/2); continue; }
     const mat = MATERIALS[o.mat];
-    ctx.font = `${Math.floor(CELL*0.48)}px system-ui`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(mat.icon, rc.x + rc.w/2, rc.y + rc.h*0.36);
-    ctx.fillStyle = rush ? '#3a2a00' : '#4a4636'; ctx.font = `bold ${Math.floor(CELL*0.22)}px system-ui`;
-    ctx.fillText(mat.name, rc.x + rc.w/2, rc.y + rc.h*0.54);
-    ctx.fillStyle = rush ? '#3a2a00' : '#2a2a2a'; ctx.font = `bold ${Math.floor(CELL*0.3)}px system-ui`;
-    ctx.fillText('× ' + (o.qty - o.done), rc.x + rc.w/2, rc.y + rc.h*0.69);
+    ctx.font = `${Math.floor(CELL*0.4)}px system-ui`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(mat.icon, rc.x + rc.w/2, rc.y + rc.h*0.30);
+    ctx.fillStyle = rush ? '#3a2a00' : '#5a5545'; ctx.font = `bold ${Math.floor(CELL*0.19)}px system-ui`;
+    ctx.fillText(mat.name, rc.x + rc.w/2, rc.y + rc.h*0.50);
+    ctx.fillStyle = rush ? '#3a2a00' : '#2a2a2a'; ctx.font = `bold ${Math.floor(CELL*0.28)}px system-ui`;
+    ctx.fillText('× ' + (o.qty - o.done), rc.x + rc.w/2, rc.y + rc.h*0.66);
     // delivery-progress pips
-    const pips = o.qty, pw = Math.min(CELL*0.16, (rc.w*0.74)/pips - 3), tot = pips*pw + (pips-1)*3, sxp = rc.x + rc.w/2 - tot/2, pyp = rc.y + rc.h*0.79;
+    const pips = o.qty, pw = Math.min(CELL*0.15, (rc.w*0.74)/pips - 3), tot = pips*pw + (pips-1)*3, sxp = rc.x + rc.w/2 - tot/2, pyp = rc.y + rc.h*0.79;
     for (let k = 0; k < pips; k++) { ctx.fillStyle = k < o.done ? mat.color : 'rgba(0,0,0,0.2)'; roundRect(sxp + k*(pw+3), pyp, pw, Math.max(3, CELL*0.07), 2); ctx.fill(); }
     if (o.rush) {  // golden urgent badge
       const pw2 = rc.w*0.52, ph = CELL*0.24, px = rc.x + rc.w/2 - pw2/2, py = rc.y + 2.5;
