@@ -94,22 +94,26 @@ function makeMapLevel(opts) {
   return { cols, rows, slots: opts.slots, bays: opts.bays, lives: opts.lives, patience: opts.patience, mats, obstacles: opts.obstacles, trucks };
 }
 
+// These aim HARDER than the base curve: big dense yards, only 4 bays, many big rigs,
+// 5–6 materials, and obstacles placed to BLOCK/queue rather than delete the hard
+// central trucks. Difficulty comes from density + limited bays + terrain, not size alone.
 const OBSTACLE_LEVELS = [
-  // 31 — a building block in the heart of the yard
-  makeMapLevel({ cols: 6, rows: 6, slots: 3, bays: 3, lives: 3, patience: 50, matCount: 3, bigEvery: 8,
-    obstacles: [{ x: 2, y: 2, w: 2, h: 2, kind: 'building' }] }),
-  // 32 — a rocky ridge
-  makeMapLevel({ cols: 7, rows: 6, slots: 3, bays: 3, lives: 3, patience: 48, matCount: 4, bigEvery: 7,
-    obstacles: [{ x: 2, y: 2, w: 3, h: 2, kind: 'rock' }] }),
-  // 33 — a lake in the middle
-  makeMapLevel({ cols: 7, rows: 7, slots: 4, bays: 4, lives: 3, patience: 47, matCount: 4, bigEvery: 6,
-    obstacles: [{ x: 2, y: 2, w: 3, h: 3, kind: 'water' }] }),
-  // 34 — two rock pillars
-  makeMapLevel({ cols: 8, rows: 6, slots: 4, bays: 4, lives: 3, patience: 45, matCount: 5, bigEvery: 6,
-    obstacles: [{ x: 2, y: 1, w: 1, h: 3, kind: 'rock' }, { x: 5, y: 2, w: 1, h: 3, kind: 'rock' }] }),
-  // 35 — a large warehouse blocking the centre
-  makeMapLevel({ cols: 8, rows: 7, slots: 4, bays: 4, lives: 4, patience: 45, matCount: 6, bigEvery: 5,
-    obstacles: [{ x: 2, y: 2, w: 4, h: 3, kind: 'building' }] }),
+  // 31 — warehouse maze: two wall spines force single-file lanes (front truck blocks its lane)
+  makeMapLevel({ cols: 8, rows: 8, slots: 4, bays: 4, lives: 3, patience: 44, matCount: 5, bigEvery: 4,
+    obstacles: [{ x: 2, y: 0, w: 1, h: 5, kind: 'building' }, { x: 5, y: 0, w: 1, h: 5, kind: 'building' }] }),
+  // 32 — a rocky ridge low and to one side, so the deep crowded corner stays
+  makeMapLevel({ cols: 9, rows: 8, slots: 4, bays: 4, lives: 3, patience: 43, matCount: 6, bigEvery: 4,
+    obstacles: [{ x: 4, y: 4, w: 4, h: 2, kind: 'rock' }] }),
+  // 33 — big lake, packed yard, four bays only
+  makeMapLevel({ cols: 9, rows: 9, slots: 4, bays: 4, lives: 3, patience: 43, matCount: 6, bigEvery: 4,
+    obstacles: [{ x: 3, y: 3, w: 3, h: 3, kind: 'water' }] }),
+  // 34 — scattered pillars break sight-lines all over a dense yard
+  makeMapLevel({ cols: 9, rows: 8, slots: 5, bays: 4, lives: 3, patience: 42, matCount: 6, bigEvery: 4,
+    obstacles: [{ x: 2, y: 1, w: 1, h: 2, kind: 'rock' }, { x: 6, y: 1, w: 1, h: 2, kind: 'rock' },
+      { x: 4, y: 3, w: 1, h: 2, kind: 'rock' }, { x: 2, y: 5, w: 1, h: 2, kind: 'rock' }, { x: 6, y: 5, w: 1, h: 2, kind: 'rock' }] }),
+  // 35 — the big warehouse: all six materials, densest, tightest
+  makeMapLevel({ cols: 9, rows: 9, slots: 5, bays: 4, lives: 4, patience: 42, matCount: 6, bigEvery: 4,
+    obstacles: [{ x: 3, y: 2, w: 4, h: 3, kind: 'building' }] }),
 ];
 
 const LEVELS = Array.from({ length: 30 }, (_, i) => makeDepot(i)).concat(OBSTACLE_LEVELS);
