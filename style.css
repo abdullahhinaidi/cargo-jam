@@ -172,6 +172,7 @@ body { background:radial-gradient(130% 100% at 50% -10%, #24325e 0%, #131c38 45%
 /* ---------- game screen ---------- */
 #game{ padding:10px; gap:10px; justify-content:flex-start; }
 #topbar{ display:flex; align-items:center; gap:8px; width:100%; max-width:980px; }
+.ctrl-cluster{ display:flex; gap:6px; flex:none; }
 .stat{ flex:1; background:linear-gradient(180deg,var(--panel-2),var(--panel)); border:1px solid var(--line);
   border-radius:14px; padding:8px 6px; text-align:center; }
 .stat-label{ display:block; font-size:11px; color:var(--dim); white-space:nowrap; }

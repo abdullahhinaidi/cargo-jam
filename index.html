@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>زحمة الشحن — Cargo Jam</title>
-  <link rel="stylesheet" href="style.css?v=12" />
+  <link rel="stylesheet" href="style.css?v=13" />
 
   <!-- ============================================================
        إحصاءات GoatCounter (زوّار + أحداث اللاعبين) — بدون كوكيز، بدون بيانات شخصية.
@@ -112,7 +112,10 @@
   <!-- ===================== GAME ===================== -->
   <section id="game" class="screen hidden">
     <header id="topbar">
-      <button class="icon-btn" id="pauseBtn">⏸️</button>
+      <div class="ctrl-cluster">
+        <button class="icon-btn" id="pauseBtn" aria-label="إيقاف مؤقّت">⏸️</button>
+        <button class="icon-btn" id="restartBtn" aria-label="إعادة المرحلة">↻</button>
+      </div>
       <div class="stat"><span class="stat-label">المرحلة</span><span class="stat-value" id="levelValue">1</span></div>
       <div class="stat" id="livesBox"><span class="stat-label">القلوب</span><span class="stat-value" id="livesValue">❤️❤️❤️</span></div>
       <div class="stat"><span class="stat-label">العملات</span><span class="stat-value" id="coinsValue">0</span></div>
@@ -121,7 +124,6 @@
     <div id="stage"><canvas id="board"></canvas></div>
     <footer id="controls">
       <button class="btn btn-ghost" id="hintBtn">💡 تلميح</button>
-      <button class="btn btn-ghost" id="restartBtn">↻ إعادة</button>
     </footer>
   </section>
 
@@ -162,7 +164,7 @@
 
 </div>
 
-  <script src="levels.js?v=12"></script>
-  <script src="game.js?v=12"></script>
+  <script src="levels.js?v=13"></script>
+  <script src="game.js?v=13"></script>
 </body>
 </html>
