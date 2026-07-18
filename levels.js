@@ -63,4 +63,53 @@ function makeDepot(i) {
   return { cols, rows, slots, bays, lives, patience, mats, trucks };
 }
 
-const LEVELS = Array.from({ length: 30 }, (_, i) => makeDepot(i));
+// ---- Obstacle levels: rectangular yard with interior terrain (rock / water / building).
+// Trucks fill every non-obstacle cell that has a clear straight exit to some edge, so the
+// terrain reshapes the jam without ever trapping a truck. Obstacles never touch an edge.
+function makeMapLevel(opts) {
+  const { cols, rows } = opts;
+  const mats = opts.mats || ALL_MATS.slice(0, opts.matCount || 4);
+  const obs = new Set();
+  (opts.obstacles || []).forEach(o => { for (let dy = 0; dy < o.h; dy++) for (let dx = 0; dx < o.w; dx++) obs.add((o.x + dx) + ',' + (o.y + dy)); });
+  const isObs = (c, r) => obs.has(c + ',' + r);
+  const used = new Set();
+  const key = (c, r) => c + ',' + r;
+  const free = (c, r) => c >= 0 && c < cols && r >= 0 && r < rows && !isObs(c, r) && !used.has(key(c, r));
+  const rayClear = (c, r, sx, sy) => { let x = c + sx, y = r + sy; while (x >= 0 && x < cols && y >= 0 && y < rows) { if (isObs(x, y)) return false; x += sx; y += sy; } return true; };
+  const hasExit = (c, r) => rayClear(c, r, 0, -1) || rayClear(c, r, 0, 1) || rayClear(c, r, -1, 0) || rayClear(c, r, 1, 0);
+  const bigH = (c, r) => (rayClear(c, r, -1, 0) || rayClear(c + 1, r, 1, 0));
+  const bigV = (c, r) => (rayClear(c, r, 0, -1) || rayClear(c, r + 1, 0, 1));
+  const trucks = [];
+  const bigEvery = opts.bigEvery || 6;
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      if (!free(c, r) || !hasExit(c, r)) continue;
+      const m = mats[((c * 7 + r * 13 + c * r * 3) % mats.length + mats.length) % mats.length];
+      const wantBig = ((c * 3 + r * 2) % bigEvery === 0);
+      if (wantBig && free(c + 1, r) && hasExit(c + 1, r) && bigH(c, r)) { used.add(key(c, r)); used.add(key(c + 1, r)); trucks.push({ c, r, mat: m, size: 2, o: 'h' }); continue; }
+      if (wantBig && free(c, r + 1) && hasExit(c, r + 1) && bigV(c, r)) { used.add(key(c, r)); used.add(key(c, r + 1)); trucks.push({ c, r, mat: m, size: 2, o: 'v' }); continue; }
+      used.add(key(c, r)); trucks.push({ c, r, mat: m, size: 1 });
+    }
+  }
+  return { cols, rows, slots: opts.slots, bays: opts.bays, lives: opts.lives, patience: opts.patience, mats, obstacles: opts.obstacles, trucks };
+}
+
+const OBSTACLE_LEVELS = [
+  // 31 — a building block in the heart of the yard
+  makeMapLevel({ cols: 6, rows: 6, slots: 3, bays: 3, lives: 3, patience: 50, matCount: 3, bigEvery: 8,
+    obstacles: [{ x: 2, y: 2, w: 2, h: 2, kind: 'building' }] }),
+  // 32 — a rocky ridge
+  makeMapLevel({ cols: 7, rows: 6, slots: 3, bays: 3, lives: 3, patience: 48, matCount: 4, bigEvery: 7,
+    obstacles: [{ x: 2, y: 2, w: 3, h: 2, kind: 'rock' }] }),
+  // 33 — a lake in the middle
+  makeMapLevel({ cols: 7, rows: 7, slots: 4, bays: 4, lives: 3, patience: 47, matCount: 4, bigEvery: 6,
+    obstacles: [{ x: 2, y: 2, w: 3, h: 3, kind: 'water' }] }),
+  // 34 — two rock pillars
+  makeMapLevel({ cols: 8, rows: 6, slots: 4, bays: 4, lives: 3, patience: 45, matCount: 5, bigEvery: 6,
+    obstacles: [{ x: 2, y: 1, w: 1, h: 3, kind: 'rock' }, { x: 5, y: 2, w: 1, h: 3, kind: 'rock' }] }),
+  // 35 — a large warehouse blocking the centre
+  makeMapLevel({ cols: 8, rows: 7, slots: 4, bays: 4, lives: 4, patience: 45, matCount: 6, bigEvery: 5,
+    obstacles: [{ x: 2, y: 2, w: 4, h: 3, kind: 'building' }] }),
+];
+
+const LEVELS = Array.from({ length: 30 }, (_, i) => makeDepot(i)).concat(OBSTACLE_LEVELS);

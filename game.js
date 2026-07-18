@@ -56,7 +56,7 @@ let musicTimer = null;
 function showScreen(name) {
   screens.forEach(s => $(s).classList.toggle('hidden', s !== name));
   hideOverlay('pauseOverlay'); hideOverlay('resultOverlay'); hideOverlay('startOverlay');
-  if (name === 'menu') { $('menuStars').textContent = '⭐ ' + totalStars() + ' / 90'; $('menuCoins').textContent = '🪙 ' + save.coins; }
+  if (name === 'menu') { $('menuStars').textContent = '⭐ ' + totalStars() + ' / ' + (LEVELS.length * 3); $('menuCoins').textContent = '🪙 ' + save.coins; }
   if (name === 'levels') buildLevelSelect();
   if (name === 'game') updateMusic(); else updateMusic();
 }
@@ -67,12 +67,14 @@ function hideOverlay(id) { $(id).classList.add('hidden'); }
 function buildLevelSelect() {
   const grid = $('levelsGrid'); grid.innerHTML = '';
   $('levelsStars').textContent = '⭐ ' + totalStars();
+  const TEST_FROM = 30;   // the obstacle test levels (31+) are always open
   for (let i = 0; i < LEVELS.length; i++) {
-    const unlocked = i < save.unlocked;
+    const isTest = i >= TEST_FROM;
+    const unlocked = i < save.unlocked || isTest;
     const st = save.stars[i] || 0;
     const d = document.createElement('div');
-    d.className = 'lvl' + (unlocked ? '' : ' locked') + (i === levelIndex ? ' current' : '');
-    d.innerHTML = `<span class="num">${i + 1}</span><span class="lvl-stars">${st ? '★'.repeat(st) + '☆'.repeat(3 - st) : ''}</span>`;
+    d.className = 'lvl' + (unlocked ? '' : ' locked') + (isTest ? ' test' : '') + (i === levelIndex ? ' current' : '');
+    d.innerHTML = `<span class="num">${i + 1}</span><span class="lvl-stars">${isTest ? '🧪' : (st ? '★'.repeat(st) + '☆'.repeat(3 - st) : '')}</span>`;
     if (unlocked) d.addEventListener('click', () => startLevel(i));
     grid.appendChild(d);
   }
@@ -134,26 +136,49 @@ function frontCell(t) {
   if (t.o === 'v') return t.dir === 'up' ? [t.c, t.r] : [t.c, t.r + t.size - 1];
   return t.dir === 'left' ? [t.c, t.r] : [t.c + t.size - 1, t.r];
 }
+let obstacles = new Set();     // "c,r" impassable terrain cells (rock / water / building)
+let obstacleRects = [];        // [{x,y,w,h,kind}] for rendering
+function isObstacle(c, r) { return obstacles.has(c + ',' + r); }
 function occupied(c, r) { return trucks.find(t => t.state === 'depot' && truckCells(t).some(([x, y]) => x === c && y === r)) || null; }
 function canExit(t) {
   let [c, r] = frontCell(t);
   const s = { up:[0,-1], down:[0,1], left:[-1,0], right:[1,0] }[t.dir];
   c += s[0]; r += s[1];
-  while (c >= 0 && c < cols && r >= 0 && r < rows) { const o = occupied(c, r); if (o && o !== t) return false; c += s[0]; r += s[1]; }
+  while (c >= 0 && c < cols && r >= 0 && r < rows) {
+    if (isObstacle(c, r)) return false;              // terrain blocks the straight-line pull-out
+    const o = occupied(c, r); if (o && o !== t) return false;
+    c += s[0]; r += s[1];
+  }
   return true;
 }
+// a truck's straight path (in one dir) to the edge, clear of OBSTACLES only (trucks move; terrain doesn't)
+function exitObstacleClear(c, r, o, size, dir) {
+  let fc, fr;
+  if (o === 'v') { fc = c; fr = dir === 'up' ? r : r + size - 1; }
+  else           { fr = r; fc = dir === 'left' ? c : c + size - 1; }
+  const s = { up:[0,-1], down:[0,1], left:[-1,0], right:[1,0] }[dir];
+  fc += s[0]; fr += s[1];
+  while (fc >= 0 && fc < cols && fr >= 0 && fr < rows) { if (isObstacle(fc, fr)) return false; fc += s[0]; fr += s[1]; }
+  return true;
+}
+// face the nearest edge whose straight path is clear of obstacles (so terrain never traps a truck)
 function autoDir(c, r, o, size) {
-  if (o === 'v') { const dU = r, dD = rows - 1 - (r + size - 1); return dU <= dD ? 'up' : 'down'; }
-  if (o === 'h') { const dL = c, dR = cols - 1 - (c + size - 1); return dL <= dR ? 'left' : 'right'; }
-  const dL = c, dR = cols - 1 - c, dU = r, dD = rows - 1 - r;
-  const minV = Math.min(dU, dD), minH = Math.min(dL, dR);
-  if (minV <= minH) return dU <= dD ? 'up' : 'down';
-  return dL <= dR ? 'left' : 'right';
+  const cands = o === 'v' ? ['up','down'] : o === 'h' ? ['left','right'] : ['up','down','left','right'];
+  const dist = { up: r, down: rows - 1 - (r + (o === 'v' ? size - 1 : 0)), left: c, right: cols - 1 - (c + (o === 'h' ? size - 1 : 0)) };
+  const clear = cands.filter(d => exitObstacleClear(c, r, o || (d === 'up' || d === 'down' ? 'v' : 'h'), size, d));
+  const pool = (clear.length ? clear : cands).slice().sort((a, b) => dist[a] - dist[b]);
+  return pool[0];
 }
 
 /* ---------- Start / load a level ---------- */
+/* Analytics: custom event to GoatCounter. No-op if the script is blocked/offline. */
+function track(name) {
+  try { if (window.goatcounter && window.goatcounter.count) window.goatcounter.count({ path: name, title: name, event: true }); } catch (e) {}
+}
+
 function startLevel(i) {
   levelIndex = i;
+  track('level-' + (i + 1) + '-start');
   showScreen('game');
   loadLevel(i);
   paused = true;                         // brief intro
@@ -167,6 +192,8 @@ function loadLevel(i) {
   patienceBase = lv.patience;
   bays = new Array(BAYS).fill(null);
   doorAnim = new Array(BAYS).fill(0);
+  obstacles = new Set(); obstacleRects = lv.obstacles || [];
+  for (const o of obstacleRects) for (let dy = 0; dy < o.h; dy++) for (let dx = 0; dx < o.w; dx++) obstacles.add((o.x + dx) + ',' + (o.y + dy));
   trucks = lv.trucks.map((t, idx) => {
     const size = t.size || 1;
     const dir = t.dir || autoDir(t.c, t.r, size > 1 ? t.o : null, size);
@@ -376,6 +403,7 @@ function draw() {
   drawDock();
   drawRoads();
   drawYard();
+  drawObstacles();
   for (const t of trucks) if (t.state === 'depot') drawTruck(t);
   for (const t of trucks) if (t.state !== 'depot' && !t.done) drawTruck(t);
   drawParticles();
@@ -480,6 +508,36 @@ function drawYard() {
   for (let r = 1; r < rows; r++) line(L.lotX+6, L.lotY+r*CELL, L.lotX+cols*CELL-6, L.lotY+r*CELL);
 }
 
+function drawObstacles() {
+  for (const o of obstacleRects) {
+    const x = L.lotX + o.x * CELL, y = L.lotY + o.y * CELL, w = o.w * CELL, h = o.h * CELL;
+    ctx.fillStyle = 'rgba(0,0,0,0.28)'; roundRect(x + 4, y + 5, w - 6, h - 6, 10); ctx.fill();  // shadow
+    if (o.kind === 'water') {
+      ctx.fillStyle = '#1487b0'; roundRect(x + 3, y + 3, w - 6, h - 6, CELL * 0.32); ctx.fill();
+      ctx.fillStyle = '#2bb8e6'; roundRect(x + 4, y + 4, w - 8, h - 11, CELL * 0.30); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.28)'; ctx.lineWidth = 2;
+      const n = Math.max(2, Math.round(h / CELL) + 1);
+      for (let i = 1; i <= n; i++) { const yy = y + h * i / (n + 1); ctx.beginPath(); ctx.moveTo(x + 9, yy); ctx.quadraticCurveTo(x + w / 2, yy - CELL * 0.13, x + w - 9, yy); ctx.stroke(); }
+    } else if (o.kind === 'rock') {
+      ctx.fillStyle = '#5f3d1c'; roundRect(x + 3, y + 3, w - 6, h - 6, 10); ctx.fill();
+      const peaks = Math.max(1, Math.round(w / CELL));
+      for (let p = 0; p < peaks; p++) { const px = x + w * (p + 0.5) / peaks;
+        ctx.fillStyle = '#8a5a2b'; ctx.beginPath(); ctx.moveTo(px, y + h * 0.18); ctx.lineTo(px + CELL * 0.34, y + h * 0.86); ctx.lineTo(px - CELL * 0.34, y + h * 0.86); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.42)'; ctx.beginPath(); ctx.moveTo(px, y + h * 0.18); ctx.lineTo(px + CELL * 0.11, y + h * 0.36); ctx.lineTo(px - CELL * 0.11, y + h * 0.36); ctx.closePath(); ctx.fill();
+      }
+    } else { // building / warehouse block
+      const g = ctx.createLinearGradient(0, y, 0, y + h); g.addColorStop(0, '#5a6685'); g.addColorStop(1, '#3e4767');
+      ctx.fillStyle = g; roundRect(x + 3, y + 3, w - 6, h - 6, 8); ctx.fill();
+      ctx.fillStyle = '#2b3350'; roundRect(x + 3, y + 3, w - 6, CELL * 0.3, 8); ctx.fill();  // roof
+      const wc = Math.max(1, Math.round(w / CELL)), wr = Math.max(1, Math.round(h / CELL) - 0);
+      ctx.fillStyle = 'rgba(255,209,102,0.5)';
+      for (let a = 0; a < wc; a++) for (let b = 0; b < wr; b++) { if ((a + b) % 2) continue; ctx.fillRect(x + w * (a + 0.32) / wc, y + CELL * 0.42 + (h - CELL * 0.42) * (b + 0.15) / wr, CELL * 0.2, CELL * 0.24); }
+    }
+    ctx.strokeStyle = 'rgba(0,0,0,0.32)'; ctx.lineWidth = 1.5;
+    roundRect(x + 3, y + 3, w - 6, h - 6, o.kind === 'water' ? CELL * 0.32 : 9); ctx.stroke();
+  }
+}
+
 const DIR_ANGLE = { up: 0, right: Math.PI/2, down: Math.PI, left: -Math.PI/2 };
 function drawTruck(t) {
   const mat = MATERIALS[t.mat] || MATERIALS.wood;
@@ -579,6 +637,7 @@ function line(x1, y1, x2, y2) { ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(
 function computeStars() { const lost = maxLives - lives; return lost <= 0 ? 3 : lost === 1 ? 2 : 1; }
 function endWin() {
   if (!running) return; running = false;
+  track('level-' + (levelIndex + 1) + '-win');
   const stars = computeStars();
   if ((save.stars[levelIndex] || 0) < stars) save.stars[levelIndex] = stars;
   if (save.unlocked < Math.min(LEVELS.length, levelIndex + 2)) save.unlocked = Math.min(LEVELS.length, levelIndex + 2);
@@ -592,7 +651,9 @@ function endWin() {
   showOverlay('resultOverlay');
 }
 function endLose() {
-  if (!running) return; running = false; sndLose();
+  if (!running) return; running = false;
+  track('level-' + (levelIndex + 1) + '-lose');
+  sndLose();
   const s = $('resultStars').children; for (let i = 0; i < 3; i++) s[i].classList.remove('on');
   $('resultTitle').textContent = '💔 نفد صبر الزبائن';
   $('resultSub').textContent = 'حاول مرة ثانية — رتّب الشاحنات بذكاء!';

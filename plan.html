@@ -222,6 +222,7 @@
     <div class="card">
       <h3><span class="ic">🗒️</span> سجل التحديثات</h3>
       <ul class="log">
+        <li><span class="date">١٧ يوليو ٢٠٢٦</span><b>إضافة إحصاءات الزوّار واللاعبين</b>دمج GoatCounter (بدون كوكيز): عدّ الزوّار + أحداث مخصّصة لكل مرحلة (بدء/فوز/خسارة). يتطلب رمز موقع مجاني يُوضع في <code style="font-size:11px">index.html</code>.</li>
         <li><span class="date">١٦ يوليو ٢٠٢٦</span><b>تخطيط الحسابات والإنجازات</b>اعتماد اتجاه محلي بدون خادم: ملفات لاعبين + شارات إنجازات + رمز حفظ/استعادة، وتأجيل المزامنة السحابية. (تخطيط فقط — لم يُنفَّذ بعد.)</li>
         <li><span class="date">١٦ يوليو ٢٠٢٦</span><b>إنشاء لوحة المشروع</b>ملف <code style="font-size:11px">plan.html</code> يجمع الفكرة والمميزات القادمة والأمن في مكان واحد.</li>
         <li><span class="date">سابقاً</span><b>إضافة CLAUDE.md</b>سياق المشروع لأي جلسة عمل قادمة.</li>
@@ -268,7 +269,7 @@
       <h3><span class="ic">🔍</span> ملاحظات على الشيفرة</h3>
       <div class="note"><b>innerHTML في buildLevelSelect:</b> يُبنى من أرقام المراحل فقط — لا مدخلات مستخدم، فهو آمن حالياً.</div>
       <div class="note"><b>الوصول للتخزين:</b> كل عمليات <code style="font-size:11px">localStorage</code> ملفوفة بـ try/catch، فلا تُعطّل اللعبة لو مُنع التخزين.</div>
-      <div class="note"><b>لا سكربتات خارجية:</b> كل الأصول محلّية — لا خطر سلسلة توريد (supply chain).</div>
+      <div class="note"><b>سكربت خارجي وحيد:</b> إحصاءات GoatCounter من <code style="font-size:11px">gc.zgo.at</code> فقط — بدون كوكيز ولا بيانات شخصية. ما عداه كل الأصول محلّية.</div>
     </div>
 
     <div class="card">
@@ -328,7 +329,7 @@ const GROUPS = [
 ];
 
 const SEC = [
-  { id:'x1', t:'إضافة Content-Security-Policy', d:'وسم meta يمنع تحميل أي مصدر خارجي', done:false },
+  { id:'x1', t:'إضافة Content-Security-Policy', d:'وسم meta يسمح بالذات + نطاق GoatCounter (gc.zgo.at) فقط', done:false },
   { id:'x2', t:'مراجعة كل استخدامات innerHTML', d:'التأكد أنها لا تعرض مدخلات مستخدم أبداً', done:true },
   { id:'x3', t:'HTTPS إجباري', d:'GitHub Pages يفرضه افتراضياً', done:true },
   { id:'x4', t:'لا أسرار في الشيفرة', d:'لا مفاتيح ولا رموز — لا حاجة لأي منها', done:true },
