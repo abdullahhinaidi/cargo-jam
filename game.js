@@ -1,7 +1,7 @@
 'use strict';
 
 /* ============================================================= *
- *  CARGO JAM  —  full game: menus, 30 levels, save, dock, juice  *
+ *  CARGO COMMANDER (قائد الشحنات) — menus, 30 levels, save, dock  *
  * ============================================================= */
 
 /* ---------- Save / progress ---------- */

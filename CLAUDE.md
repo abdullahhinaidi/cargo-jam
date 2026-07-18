@@ -1,4 +1,4 @@
-# CLAUDE.md — Cargo Jam (زحمة الشحن)
+# CLAUDE.md — Cargo Commander (قائد الشحنات)
 
 Context for any Claude Code session working on this repo (local, cloud, or mobile).
 
