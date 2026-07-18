@@ -474,8 +474,10 @@ function draw() {
   drawGround();
   drawBoard();
   drawDock();
+  drawDockGlow();
   drawRoads();
   drawYard();
+  drawCloudShadows();
   drawObstacles();
   for (const t of trucks) if (t.state === 'depot') drawTruck(t);
   for (const t of trucks) if (t.state !== 'depot' && !t.done) drawTruck(t);
@@ -529,6 +531,13 @@ function drawDock() {
   ctx.fillStyle = '#ffd166'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.font = `900 ${Math.floor(CELL*0.26)}px system-ui`;
   ctx.fillText('🏭  مركز الشحن', L.w/2, roofY + roofH/2);
+  // pulsing amber beacon on the roof edge — a little sign of life
+  const bcx = x + CELL * 0.45, bcy = roofY + roofH * 0.5, pulse = 0.5 + 0.5 * Math.sin(lastTs * 0.006);
+  const bg = ctx.createRadialGradient(bcx, bcy, 0, bcx, bcy, CELL * 0.3);
+  bg.addColorStop(0, `rgba(255,120,60,${0.35 + 0.45 * pulse})`); bg.addColorStop(1, 'rgba(255,120,60,0)');
+  ctx.fillStyle = bg; ctx.beginPath(); ctx.arc(bcx, bcy, CELL * 0.3, 0, 7); ctx.fill();
+  ctx.fillStyle = `rgba(255,${120 + 80 * pulse | 0},80,${0.65 + 0.3 * pulse})`;
+  ctx.beginPath(); ctx.arc(bcx, bcy, CELL * 0.055, 0, 7); ctx.fill();
   // bay doors + platform
   for (let i = 0; i < BAYS; i++) {
     const bx = L.bayStartX + i * L.bayW + 5, bw = L.bayW - 10;
@@ -558,6 +567,29 @@ function drawDock() {
   }
 }
 
+// warm light spilling from the lit warehouse onto the apron below it
+function drawDockGlow() {
+  const y = L.bayY + L.bayH * 0.5, yb = L.collectorY + L.laneW * 0.4;
+  if (yb <= y) return;
+  const g = ctx.createLinearGradient(0, y, 0, yb);
+  g.addColorStop(0, 'rgba(255,209,102,0.11)'); g.addColorStop(1, 'rgba(255,209,102,0)');
+  ctx.fillStyle = g; ctx.fillRect(PAD, y, L.w - PAD * 2, yb - y);
+}
+// soft cloud shadows drifting over the depot floor — outdoor life, beneath the trucks
+function drawCloudShadows() {
+  const gx = L.lotX - 6, gy = L.lotY - 6, gw = cols * CELL + 12, gh = rows * CELL + 12;
+  ctx.save();
+  roundRect(gx, gy, gw, gh, 18); ctx.clip();
+  const tsec = lastTs / 1000, span = gw + CELL * 6;
+  for (let i = 0; i < 3; i++) {
+    const cx = gx - CELL * 3 + (((tsec * (9 + i * 4)) + i * span * 0.4) % span + span) % span;
+    const cy = gy + gh * (0.22 + i * 0.29), rr = CELL * (1.7 + i * 0.5);
+    const g = ctx.createRadialGradient(cx, cy, rr * 0.15, cx, cy, rr);
+    g.addColorStop(0, 'rgba(0,0,0,0.11)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(cx, cy, rr, rr * 0.62, 0, 0, 7); ctx.fill();
+  }
+  ctx.restore();
+}
 function drawRoads() {
   const lw = L.laneW, x0 = L.leftLaneX - lw/2, x1 = L.rightLaneX + lw/2, yT = L.collectorY - lw/2, yB = L.bottomLaneY + lw/2;
   ctx.fillStyle = 'rgba(15,18,30,0.6)';
@@ -577,6 +609,10 @@ function drawYard() {
   ctx.fillStyle = g; roundRect(gx, gy, gw, gh, 18); ctx.fill();
   ctx.fillStyle = 'rgba(255,255,255,0.03)';
   for (let i = 0; i < cols*rows; i++) ctx.fillRect(L.lotX + (i*53)%(cols*CELL), L.lotY + (i*97)%(rows*CELL), 2, 2);
+  // faint oil stains for a used-depot texture (deterministic, so they don't flicker)
+  ctx.fillStyle = 'rgba(0,0,0,0.10)';
+  for (let i = 0; i < 5; i++) { const p = cellPos((i*3+1)%cols, (i*2+2)%rows);
+    ctx.beginPath(); ctx.ellipse(p.x, p.y, CELL*0.22, CELL*0.15, i, 0, 7); ctx.fill(); }
   ctx.strokeStyle = 'rgba(255,209,102,0.15)'; ctx.lineWidth = 2;
   for (let c = 1; c < cols; c++) line(L.lotX+c*CELL, L.lotY+6, L.lotX+c*CELL, L.lotY+rows*CELL-6);
   for (let r = 1; r < rows; r++) line(L.lotX+6, L.lotY+r*CELL, L.lotX+cols*CELL-6, L.lotY+r*CELL);
