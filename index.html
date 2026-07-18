@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>زحمة الشحن — Cargo Jam</title>
-  <link rel="stylesheet" href="style.css?v=13" />
+  <link rel="stylesheet" href="style.css?v=14" />
 
   <!-- ============================================================
        إحصاءات GoatCounter (زوّار + أحداث اللاعبين) — بدون كوكيز، بدون بيانات شخصية.
@@ -122,8 +122,11 @@
       <div class="stat"><span class="stat-label">المتبقّي</span><span class="stat-value" id="leftValue">0</span></div>
     </header>
     <div id="stage"><canvas id="board"></canvas></div>
-    <footer id="controls">
-      <button class="btn btn-ghost" id="hintBtn">💡 تلميح</button>
+    <footer id="controls" class="tools">
+      <button class="tool" id="toolHint" aria-label="تلميح"><span class="tool-ic">💡</span><span class="tool-cost">تلميح</span></button>
+      <button class="tool" id="toolRefresh" aria-label="تغيير الطلبات"><span class="tool-ic">🔄</span><span class="tool-cost">🪙25</span></button>
+      <button class="tool" id="toolShuffle" aria-label="خلط الساحة"><span class="tool-ic">🔀</span><span class="tool-cost">🪙40</span></button>
+      <button class="tool" id="toolEject" aria-label="نقل شاحنة للشارع"><span class="tool-ic">🚀</span><span class="tool-cost">🪙60</span></button>
     </footer>
   </section>
 
@@ -164,7 +167,7 @@
 
 </div>
 
-  <script src="levels.js?v=13"></script>
-  <script src="game.js?v=13"></script>
+  <script src="levels.js?v=14"></script>
+  <script src="game.js?v=14"></script>
 </body>
 </html>

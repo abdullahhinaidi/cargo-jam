@@ -27,6 +27,10 @@ const MATERIALS = {
   water: { color: '#2bb8e6', dark: '#1689b3', icon: '💧', name: 'ماء',   cargo: 'liquid' },
 };
 const UNIT_COINS = 10, ORDER_BONUS = 25, LOAD_INTERVAL = 0.6, DRIVE_SPEED = 7.5;
+// power-up tools (spent from the persistent coin wallet, save.coins)
+const TOOL_COST = { hint: 0, refresh: 25, shuffle: 40, eject: 60 };
+// golden "rush" orders: shorter timer, double reward — a quick-decision opportunity
+const RUSH_CHANCE = 0.16, RUSH_TIME = 0.5, RUSH_MULT = 2;
 
 /* ---------- Canvas ---------- */
 const canvas = document.getElementById('board');
@@ -40,7 +44,10 @@ let cols, rows, SLOTS, BAYS, maxLives;
 let trucks = [], bays = [], orders = [];
 let lives = 3, coins = 0, earned = 0;
 let running = false, paused = false, orderSeq = 0;
+let armedTool = null;      // 'eject' while the player is choosing a truck to send off
 let floaters = [], particles = [];
+// coin wallet is persistent (save.coins); earn banks live, tools spend live
+function earn(n) { save.coins += n; earned += n; }
 let patienceBase = 20;
 const TIME_FACTOR = 1.8;   // strategy tuning: stretch every order's patience so play is about thinking
 let lastTs = 0;
@@ -295,7 +302,7 @@ function startLevel(i) {
 function loadLevel(i) {
   const lv = LEVELS[i];
   cols = lv.cols; rows = lv.rows; SLOTS = lv.slots; BAYS = lv.bays;
-  maxLives = lv.lives; lives = lv.lives; coins = 0; earned = 0;
+  maxLives = lv.lives; lives = lv.lives; coins = 0; earned = 0; armedTool = null;
   patienceBase = Math.round(lv.patience * TIME_FACTOR);   // longer time = room to think, not race
   bays = new Array(BAYS).fill(null);
   doorAnim = new Array(BAYS).fill(0);
@@ -318,8 +325,17 @@ function updateHUD() {
   el.levelValue.textContent = levelIndex + 1;
   el.livesValue.textContent = lives <= 0 ? '💔' : (lives <= 3 ? '❤️'.repeat(lives) : '❤️×' + lives);
   el.livesBox.classList.toggle('low', lives <= 1);
-  el.coinsValue.textContent = coins;
+  el.coinsValue.textContent = save.coins;      // live persistent wallet
   el.leftValue.textContent = trucks.filter(t => !t.done).length;
+  updateToolBar();
+}
+// dim tools the player can't afford; highlight the armed tool
+function updateToolBar() {
+  for (const k of Object.keys(TOOL_COST)) {
+    const b = $('tool' + k[0].toUpperCase() + k.slice(1)); if (!b) continue;
+    b.classList.toggle('cant', save.coins < TOOL_COST[k]);
+    b.classList.toggle('armed', armedTool === k);
+  }
 }
 
 /* ---------- Supply / demand ---------- */
@@ -333,8 +349,9 @@ function makeOrder() {
   const mat = pool[Math.floor(Math.random() * pool.length)];
   const maxQ = Math.min(3, availableSupply(mat));
   const qty = 1 + Math.floor(Math.random() * Math.max(1, maxQ));
-  const p = patienceBase * (0.85 + Math.random() * 0.3);
-  return { id: ++orderSeq, mat, qty, done: 0, patience: p, maxP: p, flash: 0 };
+  const rush = qty <= 2 && Math.random() < RUSH_CHANCE;   // small quick orders can go golden
+  const p = patienceBase * (rush ? RUSH_TIME : 1) * (0.85 + Math.random() * 0.3);
+  return { id: ++orderSeq, mat, qty, done: 0, patience: p, maxP: p, flash: 0, rush };
 }
 function respawnSlot(idx, unclog) {
   // On an expiry while the dock is fully clogged, aim the new order at a parked
@@ -442,6 +459,12 @@ function handleTap(evt) {
   const px = (evt.clientX - rect.left) * sx, py = (evt.clientY - rect.top) * sy;
   const c = Math.floor((px - L.lotX) / CELL), r = Math.floor((py - L.lotY) / CELL);
   const t = occupied(c, r);
+  // eject tool armed: next depot truck tapped drives straight off to the street
+  if (armedTool === 'eject') {
+    armedTool = null; updateToolBar();
+    if (t) { if (buyTool('eject')) ejectTruck(t); } else sndBlocked();
+    return;
+  }
   if (!t) return;
   if (!canExit(t)) { t.shake = 0.3; sndBlocked(); return; }
   const bi = bays.indexOf(null);
@@ -451,6 +474,73 @@ function handleTap(evt) {
   sndDrive(); sndDoor(); fixDeadlock();
 }
 canvas.addEventListener('pointerdown', handleTap);
+
+/* ---------- Power-up tools (spent from the persistent wallet) ---------- */
+const sndTool = () => { tone(660, 0.06, 'square', 0.06, 900); noise(0.05, 'highpass', 5200, 1, 0.03); };
+function buyTool(key) {
+  const cost = TOOL_COST[key] || 0;
+  if (save.coins < cost) { sndBlocked(); return false; }
+  if (cost) { save.coins -= cost; persist(); sndTool(); }
+  updateHUD();
+  return true;
+}
+function doHint() {
+  const t = trucks.find(x => x.state === 'depot' && canExit(x) && orders.some(o => o && o.mat === x.mat && (o.qty - o.done) > 0) && bays.includes(null));
+  if (t) { t.shake = 0.6; beep(880, 0.1, 'sine', 0.1); } else beep(300, 0.15, 'sawtooth', 0.1);
+}
+function doRefresh() {
+  for (let i = 0; i < SLOTS; i++) orders[i] = makeOrder();
+  ensureSolvableSeed(); updateHUD();
+  for (let i = 0; i < SLOTS; i++) { const rc = cardRect(i); burst(rc.x + rc.w / 2, rc.y + rc.h / 2, '#ffd166', 4); }
+}
+// swap the cargo around the yard: positions & facings stay identical, so reachability
+// (and thus solvability) is unchanged — only which material sits on each truck moves.
+function doShuffle() {
+  const depot = trucks.filter(t => t.state === 'depot' && t.loadLeft > 0);
+  if (depot.length < 2) return false;
+  const mats = depot.map(t => t.mat);
+  let order;
+  for (let tries = 0; tries < 8; tries++) {
+    order = depot.map((_, i) => i);
+    for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
+    if (order.some((src, i) => mats[src] !== mats[i])) break;   // ensure a visible change
+  }
+  if (!order.some((src, i) => mats[src] !== mats[i])) return false;
+  depot.forEach((t, i) => { t.mat = mats[order[i]]; t.shake = 0.3; });   // only the cargo moves; size/load/facing stay
+  // demand is per-material; a swap can leave an order over-committed — regenerate those, keep winnable
+  for (let i = 0; i < SLOTS; i++) { const o = orders[i]; if (o && (o.qty - o.done) > remainingByMat(o.mat)) orders[i] = makeOrder(); }
+  ensureSolvableSeed(); updateHUD(); shakeMag = Math.min(6, shakeMag + 5);
+  return true;
+}
+// send a depot truck straight off to the street: bonus-deliver what matches, then leave
+function ejectTruck(t) {
+  if (t.state !== 'depot') return;
+  let guard = 0;
+  while (t.loadLeft > 0 && guard++ < 12) {
+    let idx = -1, least = Infinity;
+    for (let i = 0; i < orders.length; i++) { const o = orders[i]; if (o && o.mat === t.mat && (o.qty - o.done) > 0 && o.patience < least) { least = o.patience; idx = i; } }
+    if (idx < 0) break;
+    const o = orders[idx], rc = cardRect(idx), mult = o.rush ? RUSH_MULT : 1;
+    o.done++; t.loadLeft--; earn(UNIT_COINS * mult); spawnFloater(idx, t.mat, t.x, t.y);
+    burst(rc.x + rc.w / 2, rc.y + rc.h / 2, MATERIALS[t.mat].color, 5);
+    if (o.done >= o.qty) { earn(ORDER_BONUS * mult); o.flash = 0.4; confetti(rc.x + rc.w / 2, rc.y + rc.h / 2); respawnSlot(idx); }
+  }
+  t.state = 'leaving'; t.heading = 0; t.bayIndex = -1; burst(t.x, t.y, '#cdd6ea', 8);
+  startRoute(t, [{ x: t.x, y: -CELL * 2.5 }], () => { t.state = 'done'; t.done = true; afterDepart(); });
+  sndDepart();
+  // keep it winnable: regenerate any order the remaining supply can no longer meet
+  for (let i = 0; i < SLOTS; i++) { const o = orders[i]; if (o && (o.qty - o.done) > remainingByMat(o.mat)) orders[i] = makeOrder(); }
+  ensureSolvableSeed(); persist(); updateHUD();
+}
+function drawArmedBanner() {
+  const txt = '👆 اختر شاحنة لإخراجها إلى الشارع';
+  ctx.save();
+  ctx.font = `bold ${Math.floor(CELL * 0.3)}px system-ui`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const w = ctx.measureText(txt).width + CELL * 0.7, h = CELL * 0.66, x = L.w / 2 - w / 2, y = Math.max(2, L.lotY - CELL * 0.95);
+  ctx.fillStyle = 'rgba(255,183,3,0.96)'; roundRect(x, y, w, h, h / 2); ctx.fill();
+  ctx.fillStyle = '#241500'; ctx.fillText(txt, L.w / 2, y + h / 2);
+  ctx.restore();
+}
 
 /* ---------- Loading ---------- */
 function tryLoad(t) {
@@ -462,13 +552,13 @@ function tryLoad(t) {
     if (o && o.mat === t.mat && (o.qty - o.done) > 0 && o.patience < least) { least = o.patience; idx = i; }
   }
   if (idx < 0) return;
-  const o = orders[idx], rc = cardRect(idx);
-  o.done++; t.loadLeft--; coins += UNIT_COINS; earned += UNIT_COINS;
+  const o = orders[idx], rc = cardRect(idx), mult = o.rush ? RUSH_MULT : 1;
+  o.done++; t.loadLeft--; earn(UNIT_COINS * mult);
   spawnFloater(idx, t.mat, t.x, t.y);
-  addText(rc.x + rc.w / 2, rc.y + rc.h * 0.2, '+' + UNIT_COINS);
-  burst(rc.x + rc.w / 2, rc.y + rc.h / 2, MATERIALS[t.mat].color, 5);
+  addText(rc.x + rc.w / 2, rc.y + rc.h * 0.2, '+' + (UNIT_COINS * mult));
+  burst(rc.x + rc.w / 2, rc.y + rc.h / 2, o.rush ? '#ffd166' : MATERIALS[t.mat].color, o.rush ? 8 : 5);
   sndLoad();
-  if (o.done >= o.qty) { coins += ORDER_BONUS; earned += ORDER_BONUS; o.flash = 0.4; sndCoin(); shakeMag = Math.min(6, shakeMag + 4); confetti(rc.x + rc.w / 2, rc.y + rc.h / 2); coinArc(rc.x + rc.w / 2, rc.y + rc.h / 2); addText(rc.x + rc.w / 2, rc.y + rc.h * 0.5, '+' + ORDER_BONUS); respawnSlot(idx); }
+  if (o.done >= o.qty) { earn(ORDER_BONUS * mult); o.flash = 0.4; sndCoin(); shakeMag = Math.min(6, shakeMag + 4); confetti(rc.x + rc.w / 2, rc.y + rc.h / 2); coinArc(rc.x + rc.w / 2, rc.y + rc.h / 2); addText(rc.x + rc.w / 2, rc.y + rc.h * 0.5, '+' + (ORDER_BONUS * mult)); persist(); respawnSlot(idx); }
   if (t.loadLeft <= 0) {
     bays[t.bayIndex] = null; t.state = 'leaving'; t.heading = 0; burst(t.x, t.y, '#cdd6ea', 8);
     startRoute(t, [{ x: t.x, y: -CELL * 2.5 }], () => { t.state = 'done'; t.done = true; afterDepart(); });
@@ -556,6 +646,7 @@ function draw() {
   drawFloaters();
   if (shaking) ctx.restore();
   drawVignette();
+  if (armedTool === 'eject') drawArmedBanner();
 }
 
 function drawGround() {
@@ -620,15 +711,25 @@ function drawBoard() {
   // "shipping orders" ticket rail
   for (let i = 0; i < SLOTS; i++) {
     const o = orders[i], rc = cardRect(i);
+    const rush = o && o.rush && !(o.flash > 0);
     const g = ctx.createLinearGradient(0, rc.y, 0, rc.y + rc.h);
-    g.addColorStop(0, o && o.flash > 0 ? '#2ec27e' : '#f4f1e6'); g.addColorStop(1, o && o.flash > 0 ? '#1f9e63' : '#e2ddcb');
+    if (o && o.flash > 0) { g.addColorStop(0, '#2ec27e'); g.addColorStop(1, '#1f9e63'); }
+    else if (rush) { g.addColorStop(0, '#ffe27a'); g.addColorStop(1, '#f0a91a'); }
+    else { g.addColorStop(0, '#f4f1e6'); g.addColorStop(1, '#e2ddcb'); }
     ctx.fillStyle = g; roundRect(rc.x, rc.y, rc.w, rc.h, 10); ctx.fill();
+    if (rush) { ctx.strokeStyle = 'rgba(255,214,84,0.95)'; ctx.lineWidth = 3; roundRect(rc.x + 1.5, rc.y + 1.5, rc.w - 3, rc.h - 3, 9); ctx.stroke(); }
     ctx.fillStyle = 'rgba(0,0,0,0.12)'; roundRect(rc.x, rc.y, rc.w, rc.h * 0.16, 6); ctx.fill(); // clip strip
     ctx.fillStyle = '#c9c2a8'; ctx.fillRect(rc.x + rc.w * 0.44, rc.y - 3, rc.w * 0.12, 6); // clip
     if (!o) { ctx.fillStyle = '#9a9482'; ctx.font = `${Math.floor(CELL*0.4)}px system-ui`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('✓', rc.x + rc.w/2, rc.y + rc.h/2); continue; }
     drawMatIcon(o.mat, rc.x + rc.w/2, rc.y + rc.h*0.42, CELL*0.66);
-    ctx.fillStyle = '#2a2a2a'; ctx.font = `bold ${Math.floor(CELL*0.32)}px system-ui`;
+    ctx.fillStyle = rush ? '#3a2a00' : '#2a2a2a'; ctx.font = `bold ${Math.floor(CELL*0.32)}px system-ui`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText('× ' + (o.qty - o.done), rc.x + rc.w/2, rc.y + rc.h*0.72);
+    if (o.rush) {  // golden urgent badge
+      const pw = rc.w*0.56, ph = CELL*0.26, px = rc.x + rc.w/2 - pw/2, py = rc.y + 2.5;
+      ctx.fillStyle = '#c0392b'; roundRect(px, py, pw, ph, ph/2); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.font = `bold ${Math.floor(CELL*0.19)}px system-ui`; ctx.textBaseline = 'middle';
+      ctx.fillText('⚡ ×2', rc.x + rc.w/2, py + ph/2);
+    }
     const bx = rc.x + rc.w*0.12, bw = rc.w*0.76, by = rc.y + rc.h - 11, bh = 5;
     ctx.fillStyle = 'rgba(0,0,0,0.18)'; roundRect(bx, by, bw, bh, 3); ctx.fill();
     const frac = Math.max(0, o.patience / o.maxP);
@@ -964,7 +1065,7 @@ function endWin() {
   const stars = computeStars();
   if ((save.stars[levelIndex] || 0) < stars) save.stars[levelIndex] = stars;
   if (save.unlocked < Math.min(LEVELS.length, levelIndex + 2)) save.unlocked = Math.min(LEVELS.length, levelIndex + 2);
-  save.coins += earned; persist();
+  persist();   // coins already banked live into save.coins during play
   sndWin();
   const s = $('resultStars').children;
   for (let i = 0; i < 3; i++) { s[i].classList.remove('on'); if (i < stars) setTimeout(() => { s[i].classList.add('on'); sndStar(); }, 300 + i * 260); }
@@ -996,10 +1097,19 @@ $('resumeBtn').addEventListener('click', () => { paused = false; lastTs = 0; hid
 $('pauseRestartBtn').addEventListener('click', () => { hideOverlay('pauseOverlay'); loadLevel(levelIndex); });
 $('pauseMenuBtn').addEventListener('click', () => { running = false; paused = false; showScreen('menu'); });
 $('restartBtn').addEventListener('click', () => { unlockAudio(); loadLevel(levelIndex); });
-$('hintBtn').addEventListener('click', () => {
+$('toolHint').addEventListener('click', () => { if (!running || paused) return; armedTool = null; if (buyTool('hint')) doHint(); updateToolBar(); });
+$('toolRefresh').addEventListener('click', () => { if (!running || paused) return; armedTool = null; if (buyTool('refresh')) doRefresh(); updateToolBar(); });
+$('toolShuffle').addEventListener('click', () => {
+  if (!running || paused) return; armedTool = null;
+  if (save.coins < TOOL_COST.shuffle) { sndBlocked(); updateToolBar(); return; }
+  if (doShuffle()) { save.coins -= TOOL_COST.shuffle; persist(); sndTool(); }  // charge only if it actually re-shuffled
+  updateToolBar();
+});
+$('toolEject').addEventListener('click', () => {
   if (!running || paused) return;
-  const t = trucks.find(x => x.state === 'depot' && canExit(x) && orders.some(o => o && o.mat === x.mat && (o.qty - o.done) > 0) && bays.includes(null));
-  if (t) { t.shake = 0.6; beep(880, 0.1, 'sine', 0.1); } else beep(300, 0.15, 'sawtooth', 0.1);
+  if (armedTool === 'eject') { armedTool = null; updateToolBar(); return; }   // toggle off
+  if (save.coins < TOOL_COST.eject) { sndBlocked(); return; }
+  armedTool = 'eject'; updateToolBar();
 });
 $('nextBtn').addEventListener('click', () => { hideOverlay('resultOverlay'); startLevel(Math.min(levelIndex + 1, LEVELS.length - 1)); });
 $('retryBtn').addEventListener('click', () => { hideOverlay('resultOverlay'); loadLevel(levelIndex); });
