@@ -49,7 +49,7 @@ let doorAnim = [];     // per-bay door open amount 0..1
 /* ---------- DOM ---------- */
 const el = {};
 ['levelValue','livesValue','livesBox','coinsValue','leftValue'].forEach(id => el[id] = document.getElementById(id));
-const screens = ['menu','levels','settings','game'];
+const screens = ['menu','levels','settings','game','profile'];
 function $(id){ return document.getElementById(id); }
 
 /* ---------- Screen manager ---------- */
@@ -59,6 +59,7 @@ function showScreen(name) {
   hideOverlay('pauseOverlay'); hideOverlay('resultOverlay'); hideOverlay('startOverlay');
   if (name === 'menu') { $('menuStars').textContent = '⭐ ' + totalStars() + ' / ' + (LEVELS.length * 3); $('menuCoins').textContent = '🪙 ' + save.coins; }
   if (name === 'levels') buildLevelSelect();
+  if (name === 'profile') buildProfile();
   if (name === 'game') updateMusic(); else updateMusic();
 }
 function showOverlay(id) { $(id).classList.remove('hidden'); }
@@ -79,6 +80,76 @@ function buildLevelSelect() {
     if (unlocked) d.addEventListener('click', () => startLevel(i));
     grid.appendChild(d);
   }
+}
+
+/* ---------- Profile / player card ---------- */
+const CAMPAIGN = 30;   // levels 0..29 are the campaign; 30+ are the always-open test levels
+// rank ladder, keyed by total stars earned
+const RANKS = [
+  { min: 0,   name: 'مبتدئ الشحن',     icon: '🚚' },
+  { min: 8,   name: 'سائق نشيط',       icon: '🚛' },
+  { min: 20,  name: 'منسّق المستودع',   icon: '📦' },
+  { min: 40,  name: 'قبطان الأرصفة',    icon: '⚓' },
+  { min: 65,  name: 'خبير اللوجستيات',  icon: '🎯' },
+  { min: 90,  name: 'سيّد المستودع',    icon: '👑' },
+];
+function profileMetrics() {
+  let levels = 0, perfect = 0, campaignDone = 0;
+  for (const k in save.stars) { const v = save.stars[k] || 0; if (v > 0) { levels++; if (v >= 3) perfect++; if (+k < CAMPAIGN) campaignDone++; } }
+  return { stars: totalStars(), coins: save.coins, levels, perfect, campaignDone };
+}
+function profileBadges(m) {
+  return [
+    { icon: '🎉', name: 'أول توصيلة', desc: 'أكملت أول مرحلة',        got: m.levels >= 1 },
+    { icon: '🔟', name: 'عشر مراحل',  desc: 'أكملت ١٠ مراحل',          got: m.levels >= 10 },
+    { icon: '🌟', name: 'نجمة كاملة', desc: '٣ نجوم في مرحلة',         got: m.perfect >= 1 },
+    { icon: '✨', name: 'إتقان',      desc: '٣ نجوم في ٥ مراحل',       got: m.perfect >= 5 },
+    { icon: '💫', name: 'نجم ساطع',   desc: '٥٠ نجمة',                 got: m.stars >= 50 },
+    { icon: '💰', name: 'ثري',        desc: 'جمعت ٥٠٠ عملة',           got: m.coins >= 500 },
+    { icon: '🏆', name: 'بطل الحملة', desc: 'أنهيت الـ٣٠ مرحلة',       got: m.campaignDone >= CAMPAIGN },
+    { icon: '👑', name: 'أسطورة',     desc: '٩٠ نجمة',                 got: m.stars >= 90 },
+  ];
+}
+function buildProfile() {
+  const s = totalStars();
+  let cur = RANKS[0]; for (const r of RANKS) if (s >= r.min) cur = r;
+  const next = RANKS[RANKS.indexOf(cur) + 1];
+  $('pfAvatar').textContent = cur.icon;
+  $('pfRank').textContent = cur.name;
+  if (next) {
+    const frac = Math.max(0, Math.min(1, (s - cur.min) / (next.min - cur.min)));
+    $('pfRankFill').style.width = (frac * 100) + '%';
+    $('pfNext').textContent = `التالي: ${next.name} — باقي ${next.min - s} ⭐`;
+  } else { $('pfRankFill').style.width = '100%'; $('pfNext').textContent = 'أعلى رتبة — أنت الأسطورة! 👑'; }
+
+  const m = profileMetrics();
+  $('pfStars').textContent = s;
+  $('pfCoins').textContent = save.coins;
+  $('pfLevels').textContent = m.levels;
+  $('pfPerfect').textContent = m.perfect;
+
+  // mastery map for the 30 campaign levels
+  const mg = $('pfMastery'); mg.innerHTML = '';
+  for (let i = 0; i < CAMPAIGN; i++) {
+    const st = save.stars[i] || 0, reached = i < save.unlocked;
+    const d = document.createElement('div');
+    d.className = 'pf-cell ' + (st ? 's' + st : reached ? 'open' : 'locked');
+    d.textContent = st ? '★'.repeat(st) : (i + 1);
+    mg.appendChild(d);
+  }
+  $('pfMasteryCount').textContent = m.campaignDone + ' / ' + CAMPAIGN;
+
+  // achievement badges
+  const badges = profileBadges(m), bg = $('pfBadges'); bg.innerHTML = '';
+  let got = 0;
+  for (const b of badges) {
+    if (b.got) got++;
+    const d = document.createElement('div');
+    d.className = 'pf-badge' + (b.got ? ' got' : '');
+    d.innerHTML = `<span class="pf-b-ic">${b.got ? b.icon : '🔒'}</span><b>${b.name}</b><small>${b.desc}</small>`;
+    bg.appendChild(d);
+  }
+  $('pfBadgeCount').textContent = got + ' / ' + badges.length;
 }
 
 /* ---------- Audio ---------- */

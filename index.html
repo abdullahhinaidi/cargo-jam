@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>زحمة الشحن — Cargo Jam</title>
-  <link rel="stylesheet" href="style.css?v=9" />
+  <link rel="stylesheet" href="style.css?v=10" />
 
   <!-- ============================================================
        إحصاءات GoatCounter (زوّار + أحداث اللاعبين) — بدون كوكيز، بدون بيانات شخصية.
@@ -40,9 +40,10 @@
       <div class="menu-buttons">
         <button class="btn btn-primary big" id="playBtn">▶ ابدأ اللعب</button>
         <button class="btn" id="levelsBtn">🗺️ المراحل</button>
+        <button class="btn" id="profileBtn" data-nav="profile">🎖️ ملفّي</button>
         <button class="btn" id="settingsBtn">⚙️ الإعدادات</button>
       </div>
-      <div class="menu-stats">
+      <div class="menu-stats" data-nav="profile" title="افتح ملفّي">
         <span id="menuStars">⭐ 0 / 90</span>
         <span id="menuCoins">🪙 0</span>
       </div>
@@ -57,6 +58,40 @@
       <span class="bar-right" id="levelsStars">⭐ 0</span>
     </header>
     <div class="levels-grid" id="levelsGrid"></div>
+  </section>
+
+  <!-- ===================== PROFILE ===================== -->
+  <section id="profile" class="screen hidden">
+    <header class="bar">
+      <button class="icon-btn" data-nav="menu">‹</button>
+      <h2>ملفّي</h2>
+      <span class="bar-right"></span>
+    </header>
+    <div class="profile-body">
+      <div class="profile-hero">
+        <div class="pf-glow"></div>
+        <div class="pf-sheen"></div>
+        <div class="pf-avatar" id="pfAvatar">🚚</div>
+        <div class="pf-id">
+          <div class="pf-rank" id="pfRank">مبتدئ الشحن</div>
+          <div class="pf-rankbar"><span id="pfRankFill"></span></div>
+          <div class="pf-next" id="pfNext"></div>
+        </div>
+      </div>
+
+      <div class="pf-stats">
+        <div class="pf-tile"><span class="pf-ic">⭐</span><b id="pfStars">0</b><small>نجوم</small></div>
+        <div class="pf-tile"><span class="pf-ic">🪙</span><b id="pfCoins">0</b><small>عملات</small></div>
+        <div class="pf-tile"><span class="pf-ic">🚩</span><b id="pfLevels">0</b><small>مراحل</small></div>
+        <div class="pf-tile"><span class="pf-ic">🏅</span><b id="pfPerfect">0</b><small>ثلاث نجوم</small></div>
+      </div>
+
+      <div class="pf-section-title">🗺️ إتقان المراحل <span class="pf-badgecount" id="pfMasteryCount"></span></div>
+      <div class="pf-mastery" id="pfMastery"></div>
+
+      <div class="pf-section-title">🎖️ الأوسمة <span class="pf-badgecount" id="pfBadgeCount"></span></div>
+      <div class="pf-badges" id="pfBadges"></div>
+    </div>
   </section>
 
   <!-- ===================== SETTINGS ===================== -->
@@ -127,7 +162,7 @@
 
 </div>
 
-  <script src="levels.js?v=9"></script>
-  <script src="game.js?v=9"></script>
+  <script src="levels.js?v=10"></script>
+  <script src="game.js?v=10"></script>
 </body>
 </html>
