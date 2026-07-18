@@ -22,7 +22,7 @@ const MATERIALS = {
   wood:  { color: '#a8703a', dark: '#754c22', icon: '🪵', name: 'خشب',   cargo: 'logs' },
   oil:   { color: '#3a4150', dark: '#242a34', icon: '🛢️', name: 'نفط',   cargo: 'oil' },
   food:  { color: '#e8524a', dark: '#b83a33', icon: '🍎', name: 'غذاء',  cargo: 'produce' },
-  steel: { color: '#7d8ea6', dark: '#576578', icon: '🔩', name: 'حديد',  cargo: 'metal' },
+  steel: { color: '#7d8ea6', dark: '#576578', icon: '⛓️', name: 'حديد',  cargo: 'metal' },
   goods: { color: '#d79a5c', dark: '#a5733c', icon: '📦', name: 'بضائع', cargo: 'boxes' },
   water: { color: '#2bb8e6', dark: '#1689b3', icon: '💧', name: 'ماء',   cargo: 'liquid' },
 };
@@ -721,7 +721,8 @@ function drawBoard() {
     ctx.fillStyle = 'rgba(0,0,0,0.12)'; roundRect(rc.x, rc.y, rc.w, rc.h * 0.16, 6); ctx.fill(); // clip strip
     ctx.fillStyle = '#c9c2a8'; ctx.fillRect(rc.x + rc.w * 0.44, rc.y - 3, rc.w * 0.12, 6); // clip
     if (!o) { ctx.fillStyle = '#9a9482'; ctx.font = `${Math.floor(CELL*0.4)}px system-ui`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('✓', rc.x + rc.w/2, rc.y + rc.h/2); continue; }
-    drawMatIcon(o.mat, rc.x + rc.w/2, rc.y + rc.h*0.42, CELL*0.66);
+    ctx.font = `${Math.floor(CELL*0.56)}px system-ui`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(MATERIALS[o.mat].icon, rc.x + rc.w/2, rc.y + rc.h*0.42);
     ctx.fillStyle = rush ? '#3a2a00' : '#2a2a2a'; ctx.font = `bold ${Math.floor(CELL*0.32)}px system-ui`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText('× ' + (o.qty - o.done), rc.x + rc.w/2, rc.y + rc.h*0.72);
     if (o.rush) {  // golden urgent badge
@@ -1044,7 +1045,8 @@ function drawParticles() {
 }
 function drawFloaters() {
   for (const f of floaters) { const k = ease(f.t); const x = f.x+(f.tx-f.x)*k, y = f.y+(f.ty-f.y)*k;
-    ctx.globalAlpha = 1-f.t*0.5; drawMatIcon(f.mat, x, y, CELL*0.58); ctx.globalAlpha = 1; }
+    ctx.globalAlpha = 1-f.t*0.5; ctx.font = `${Math.floor(CELL*0.5)}px system-ui`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText((MATERIALS[f.mat]||MATERIALS.wood).icon, x, y); ctx.globalAlpha = 1; }
 }
 function drawVignette() {
   const g = ctx.createRadialGradient(L.w/2, L.h*0.42, L.h*0.18, L.w/2, L.h*0.5, L.h*0.75);
