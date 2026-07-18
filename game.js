@@ -532,14 +532,21 @@ function ejectTruck(t) {
   for (let i = 0; i < SLOTS; i++) { const o = orders[i]; if (o && (o.qty - o.done) > remainingByMat(o.mat)) orders[i] = makeOrder(); }
   ensureSolvableSeed(); persist(); updateHUD();
 }
-function drawArmedBanner() {
-  const txt = '👆 اختر شاحنة لإخراجها إلى الشارع';
+function drawBanner(txt, bg, fg) {
   ctx.save();
   ctx.font = `bold ${Math.floor(CELL * 0.3)}px system-ui`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  const w = ctx.measureText(txt).width + CELL * 0.7, h = CELL * 0.66, x = L.w / 2 - w / 2, y = Math.max(2, L.lotY - CELL * 0.95);
-  ctx.fillStyle = 'rgba(255,183,3,0.96)'; roundRect(x, y, w, h, h / 2); ctx.fill();
-  ctx.fillStyle = '#241500'; ctx.fillText(txt, L.w / 2, y + h / 2);
+  const w = Math.min(L.w - PAD * 2, ctx.measureText(txt).width + CELL * 0.7), h = CELL * 0.66, x = L.w / 2 - w / 2, y = Math.max(2, L.lotY - CELL * 0.95);
+  ctx.fillStyle = bg; roundRect(x, y, w, h, h / 2); ctx.fill();
+  ctx.fillStyle = fg; ctx.fillText(txt, L.w / 2, y + h / 2);
   ctx.restore();
+}
+// fully clogged with no productive move → the player can only wait; used to speed the
+// countdown and warn, so a jam resolves in seconds instead of a ~minute-long dead wait
+function boardStuck() {
+  if (!running) return false;
+  if (bays.some(b => b === null)) return false;                       // a free bay = the player can still act
+  const docked = trucks.filter(t => t.state === 'bay' || t.state === 'toBay');
+  return docked.length > 0 && !docked.some(t => orders.some(o => o && o.mat === t.mat && (o.qty - o.done) > 0));
 }
 
 /* ---------- Loading ---------- */
@@ -612,9 +619,10 @@ function render() {
   updateParticles(dt);
   if (shakeMag > 0) shakeMag = Math.max(0, shakeMag - dt * 22);
   if (running) {
+    const spd = boardStuck() ? 10 : 1;  // fully clogged with no move → drain fast so it resolves in seconds
     for (let i = 0; i < orders.length; i++) { const o = orders[i]; if (!o) continue;
       if (o.flash > 0) o.flash = Math.max(0, o.flash - dt);
-      o.patience -= dt;
+      o.patience -= dt * spd;
       if (o.patience <= 0) { lives--; sndExpire(); respawnSlot(i, true); updateHUD(); if (lives <= 0) { endLose(); break; } } }
   }
   for (const f of floaters) f.t = Math.min(1, f.t + dt / 0.4);
@@ -646,7 +654,8 @@ function draw() {
   drawFloaters();
   if (shaking) ctx.restore();
   drawVignette();
-  if (armedTool === 'eject') drawArmedBanner();
+  if (armedTool === 'eject') drawBanner('👆 اختر شاحنة لإخراجها إلى الشارع', 'rgba(255,183,3,0.96)', '#241500');
+  else if (boardStuck()) drawBanner('⚠️ الرصيف مزدحم — استخدم أداة!', 'rgba(224,69,58,0.96)', '#fff');
 }
 
 function drawGround() {
