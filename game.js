@@ -94,14 +94,42 @@ function beep(freq, dur = 0.08, type = 'sine', vol = 0.12) {
     o.stop(a.currentTime + dur);
   } catch (e) {}
 }
-const sndDrive = () => { beep(520,.09,'triangle',.11); setTimeout(()=>beep(720,.09,'triangle',.09),55); };
-const sndLoad = () => beep(680,.05,'sine',.09);
-const sndDepart = () => { beep(440,.12,'triangle',.12); setTimeout(()=>beep(640,.12,'triangle',.1),90); };
-const sndBlocked = () => beep(150,.13,'sawtooth',.09);
-const sndExpire = () => { beep(300,.18,'sawtooth',.13); setTimeout(()=>beep(200,.2,'sawtooth',.11),120); };
-const sndStar = () => beep(1000,.12,'triangle',.14);
-const sndWin = () => [523,659,784,1047].forEach((f,i)=>setTimeout(()=>beep(f,.14,'triangle',.15),i*110));
-const sndLose = () => [400,300,200].forEach((f,i)=>setTimeout(()=>beep(f,.2,'sawtooth',.13),i*150));
+// ---- richer synthesis layer: master bus, filtered noise, swept tones ----
+let master = null;
+function mgain() { const a = actx(); if (!a) return null; if (!master) { master = a.createGain(); master.gain.value = 0.85; master.connect(a.destination); } return master; }
+let _noise = null;
+function noiseBuf() { const a = actx(); if (!a) return null; if (_noise) return _noise; const n = Math.floor(a.sampleRate * 0.6); const b = a.createBuffer(1, n, a.sampleRate); const d = b.getChannelData(0); for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1; _noise = b; return b; }
+function tone(freq, dur, type, vol, sweepTo, when) {
+  if (!save.sfx) return; const a = actx(); if (!a) return; try {
+    const o = a.createOscillator(), g = a.createGain(), t0 = a.currentTime + (when || 0);
+    o.type = type || 'sine'; o.frequency.setValueAtTime(freq, t0);
+    if (sweepTo) o.frequency.exponentialRampToValueAtTime(Math.max(1, sweepTo), t0 + dur);
+    g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(vol || 0.1, t0 + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(g); g.connect(mgain()); o.start(t0); o.stop(t0 + dur + 0.03);
+  } catch (e) {}
+}
+function noise(dur, filter, freq, q, vol, sweepTo) {
+  if (!save.sfx) return; const a = actx(); if (!a) return; try {
+    const s = a.createBufferSource(); s.buffer = noiseBuf();
+    const f = a.createBiquadFilter(); f.type = filter || 'bandpass'; f.frequency.value = freq; if (q) f.Q.value = q;
+    const g = a.createGain(); g.gain.setValueAtTime(vol || 0.1, a.currentTime);
+    if (sweepTo) f.frequency.exponentialRampToValueAtTime(Math.max(1, sweepTo), a.currentTime + dur);
+    g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + dur);
+    s.connect(f); f.connect(g); g.connect(mgain()); s.start(); s.stop(a.currentTime + dur + 0.02);
+  } catch (e) {}
+}
+const sndDrive  = () => { tone(70, 0.22, 'sawtooth', 0.05, 150); tone(120, 0.22, 'square', 0.03, 210); };        // engine revs up
+const sndLoad   = () => { tone(240, 0.05, 'square', 0.05, 180); noise(0.05, 'bandpass', 1400, 4, 0.05); };        // cargo clunk
+const sndDepart = () => { noise(0.28, 'highpass', 1800, 0.7, 0.09, 500); tone(150, 0.16, 'triangle', 0.05, 110); }; // air-brake hiss + pull away
+const sndDock   = () => { tone(520, 0.05, 'sine', 0.05); setTimeout(() => tone(390, 0.06, 'sine', 0.05), 60); };  // reverse confirm
+const sndDoor   = () => noise(0.4, 'lowpass', 520, 0.8, 0.05, 300);                                               // roll-up door rumble
+const sndBlocked= () => tone(110, 0.16, 'sawtooth', 0.09, 80);                                                    // low honk
+const sndExpire = () => { tone(330, 0.18, 'sawtooth', 0.1, 190); setTimeout(() => tone(196, 0.24, 'sawtooth', 0.09, 120), 110); };
+const sndStar   = () => tone(1046, 0.14, 'triangle', 0.12, 1568);
+const sndCoin   = () => { tone(988, 0.05, 'square', 0.08, 1318); setTimeout(() => tone(1318, 0.09, 'square', 0.07, 1568), 55); noise(0.05, 'highpass', 6000, 1, 0.03); }; // cha-ching
+const sndWin    = () => [523, 659, 784, 1047, 1319].forEach((f, i) => setTimeout(() => tone(f, 0.2, 'triangle', 0.12), i * 110));
+const sndLose   = () => [440, 330, 262, 196].forEach((f, i) => setTimeout(() => tone(f, 0.3, 'sawtooth', 0.11, f * 0.92), i * 150));
 
 // gentle ambient music loop
 const MUSIC_NOTES = [196, 261.6, 329.6, 392, 329.6, 261.6, 220, 261.6];
@@ -112,18 +140,25 @@ function musicTick() {
   try {
     const f = MUSIC_NOTES[musicStep % MUSIC_NOTES.length]; musicStep++;
     const o = a.createOscillator(), g = a.createGain();
-    o.type = 'sine'; o.frequency.value = f; g.gain.value = 0.0;
-    o.connect(g); g.connect(a.destination); o.start();
-    g.gain.linearRampToValueAtTime(0.05, a.currentTime + 0.15);
+    o.type = 'triangle'; o.frequency.value = f; g.gain.value = 0.0;
+    o.connect(g); g.connect(mgain()); o.start();
+    g.gain.linearRampToValueAtTime(0.045, a.currentTime + 0.15);
     g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + 1.1);
     o.stop(a.currentTime + 1.2);
+    // a soft fifth for warmth
+    const h = a.createOscillator(), hg = a.createGain();
+    h.type = 'sine'; h.frequency.value = f * 1.5; hg.gain.value = 0;
+    h.connect(hg); hg.connect(mgain()); h.start();
+    hg.gain.linearRampToValueAtTime(0.02, a.currentTime + 0.2); hg.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + 1); h.stop(a.currentTime + 1.1);
     // soft bass every 4 steps
     if (musicStep % 4 === 0) {
       const b = a.createOscillator(), bg = a.createGain();
       b.type = 'triangle'; b.frequency.value = 98; bg.gain.value = 0.06;
-      b.connect(bg); bg.connect(a.destination); b.start();
+      b.connect(bg); bg.connect(mgain()); b.start();
       bg.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + 0.9); b.stop(a.currentTime + 1);
     }
+    // gentle hi-hat on the off-beat for a little groove
+    if (musicStep % 2 === 1) { const s = a.createBufferSource(); s.buffer = noiseBuf(); const hf = a.createBiquadFilter(); hf.type = 'highpass'; hf.frequency.value = 7000; const g2 = a.createGain(); g2.gain.value = 0.015; s.connect(hf); hf.connect(g2); g2.connect(mgain()); s.start(); g2.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + 0.06); s.stop(a.currentTime + 0.08); }
   } catch (e) {}
 }
 function updateMusic() {
@@ -341,8 +376,8 @@ function handleTap(evt) {
   const bi = bays.indexOf(null);
   if (bi < 0) { t.shake = 0.3; sndBlocked(); return; }
   bays[bi] = t; t.bayIndex = bi; t.state = 'toBay';
-  startRoute(t, routeToBay(t, bi), () => { t.state = 'bay'; t.loadTimer = 0; t.heading = 0; });
-  sndDrive(); fixDeadlock();
+  startRoute(t, routeToBay(t, bi), () => { t.state = 'bay'; t.loadTimer = 0; t.heading = 0; t.braked = 0.35; sndDock(); });
+  sndDrive(); sndDoor(); fixDeadlock();
 }
 canvas.addEventListener('pointerdown', handleTap);
 
@@ -362,7 +397,7 @@ function tryLoad(t) {
   addText(rc.x + rc.w / 2, rc.y + rc.h * 0.2, '+' + UNIT_COINS);
   burst(rc.x + rc.w / 2, rc.y + rc.h / 2, MATERIALS[t.mat].color, 5);
   sndLoad();
-  if (o.done >= o.qty) { coins += ORDER_BONUS; earned += ORDER_BONUS; o.flash = 0.4; burst(rc.x + rc.w / 2, rc.y + rc.h / 2, '#ffd166', 16); addText(rc.x + rc.w / 2, rc.y + rc.h * 0.5, '+' + ORDER_BONUS); respawnSlot(idx); }
+  if (o.done >= o.qty) { coins += ORDER_BONUS; earned += ORDER_BONUS; o.flash = 0.4; sndCoin(); shakeMag = Math.min(6, shakeMag + 4); confetti(rc.x + rc.w / 2, rc.y + rc.h / 2); coinArc(rc.x + rc.w / 2, rc.y + rc.h / 2); addText(rc.x + rc.w / 2, rc.y + rc.h * 0.5, '+' + ORDER_BONUS); respawnSlot(idx); }
   if (t.loadLeft <= 0) {
     bays[t.bayIndex] = null; t.state = 'leaving'; t.heading = 0; burst(t.x, t.y, '#cdd6ea', 8);
     startRoute(t, [{ x: t.x, y: -CELL * 2.5 }], () => { t.state = 'done'; t.done = true; afterDepart(); });
@@ -373,15 +408,23 @@ function tryLoad(t) {
 function afterDepart() { if (trucks.every(x => x.done)) endWin(); }
 function spawnFloater(cardIdx, mat, fx, fy) { const rc = cardRect(cardIdx); floaters.push({ x: fx, y: fy, tx: rc.x + rc.w / 2, ty: rc.y + rc.h / 2, t: 0, mat }); }
 
-/* ---------- Particles ---------- */
+/* ---------- Particles & juice ---------- */
 const rnd = () => Math.random();
-function addSmoke(x, y) { particles.push({ type:'smoke', x, y, vx:(rnd()-.5)*14, vy:-10-rnd()*12, life:0, max:.5+rnd()*.4, r:CELL*.07 }); }
+let shakeMag = 0;
+const CONFETTI_COLORS = ['#ff5c5c','#ffd166','#2bb8e6','#38d29a','#c77dff','#ff9e12'];
+function addSmoke(x, y) { particles.push({ type:'smoke', x, y, vx:(rnd()-.5)*16, vy:-12-rnd()*14, life:0, max:.55+rnd()*.5, r:CELL*.06, r1:CELL*.20 }); }
 function addSpark(x, y, color) { particles.push({ type:'spark', x, y, vx:(rnd()-.5)*150, vy:-50-rnd()*110, life:0, max:.45+rnd()*.35, color, r:CELL*.055 }); }
 function addText(x, y, txt) { particles.push({ type:'text', x, y, vy:-46, life:0, max:.9, txt }); }
 function burst(x, y, color, n) { for (let i = 0; i < n; i++) addSpark(x, y, color); }
+function confetti(x, y) { for (let i = 0; i < 22; i++) particles.push({ type:'confetti', x, y, vx:(rnd()-.5)*260, vy:-90-rnd()*180, life:0, max:.9+rnd()*.6, color:CONFETTI_COLORS[(i*7)%CONFETTI_COLORS.length], rot:rnd()*6.28, vr:(rnd()-.5)*14, s:CELL*.12 }); }
+function coinArc(x, y) { for (let i = 0; i < 6; i++) particles.push({ type:'coin', x, y, vx:(rnd()-.5)*90, vy:-140-rnd()*90, life:0, max:.7+rnd()*.3, s:CELL*.16 }); }
 function updateParticles(dt) {
   for (const p of particles) { p.life += dt; p.x += (p.vx||0)*dt; p.y += (p.vy||0)*dt;
-    if (p.type==='smoke'){ p.r += CELL*.11*dt; p.vy*=.95; } else if (p.type==='spark'){ p.vy += 340*dt; } else if (p.type==='text'){ p.vy*=.94; } }
+    if (p.type==='smoke'){ p.r += (p.r1)*dt*2.2; p.vy*=.94; p.vx*=.96; }
+    else if (p.type==='spark'){ p.vy += 340*dt; }
+    else if (p.type==='confetti'){ p.vy += 520*dt; p.vx*=.98; p.rot += p.vr*dt; }
+    else if (p.type==='coin'){ p.vy += 640*dt; }
+    else if (p.type==='text'){ p.vy*=.94; } }
   particles = particles.filter(p => p.life < p.max);
 }
 
@@ -398,11 +441,15 @@ function render() {
       if (t.anim.t >= 1) { const cb = t.anim.onDone; t.anim = null; if (cb) cb(); } }
     if (t.state === 'toBay' || t.state === 'leaving') { t.smokeT += dt; if (t.smokeT > 0.07) { t.smokeT = 0; const fx = Math.sin(t.heading||0), fy = -Math.cos(t.heading||0); addSmoke(t.x - fx*CELL*.4, t.y - fy*CELL*.4); } }
     if (t.state === 'bay' && running) { t.loadTimer += dt; if (t.loadTimer >= LOAD_INTERVAL) { t.loadTimer = 0; tryLoad(t); } }
+    const mvd = Math.hypot(t.x - (t._px == null ? t.x : t._px), t.y - (t._py == null ? t.y : t._py));
+    t.spin = (t.spin || 0) + mvd; t._px = t.x; t._py = t.y;   // wheels roll with distance travelled
+    if (t.braked > 0) t.braked = Math.max(0, t.braked - dt);
     if (t.shake > 0) t.shake = Math.max(0, t.shake - dt);
   }
   // doors: open when a truck occupies the bay
   for (let i = 0; i < BAYS; i++) { const target = bays[i] ? 1 : 0; doorAnim[i] += (target - doorAnim[i]) * Math.min(1, dt * 6); }
   updateParticles(dt);
+  if (shakeMag > 0) shakeMag = Math.max(0, shakeMag - dt * 22);
   if (running) {
     for (let i = 0; i < orders.length; i++) { const o = orders[i]; if (!o) continue;
       if (o.flash > 0) o.flash = Math.max(0, o.flash - dt);
@@ -422,6 +469,8 @@ document.addEventListener('visibilitychange', () => { lastTs = 0; render(); });
 function draw() {
   if (!L.w || !cols) return;
   ctx.clearRect(0, 0, L.w, L.h);
+  const shaking = shakeMag > 0.2;
+  if (shaking) { ctx.save(); ctx.translate((rnd() - 0.5) * shakeMag, (rnd() - 0.5) * shakeMag); }
   drawGround();
   drawBoard();
   drawDock();
@@ -432,6 +481,7 @@ function draw() {
   for (const t of trucks) if (t.state !== 'depot' && !t.done) drawTruck(t);
   drawParticles();
   drawFloaters();
+  if (shaking) ctx.restore();
   drawVignette();
 }
 
@@ -569,8 +619,9 @@ function drawTruck(t) {
   const moving = t.state === 'toBay' || t.state === 'leaving';
   const angle = moving ? (t.heading || 0) : (inDepot ? DIR_ANGLE[t.dir] : 0);
   const shakeX = t.shake > 0 ? Math.sin(t.shake*45)*3 : 0;
-  ctx.save(); ctx.translate(t.x + shakeX, t.y); ctx.rotate(angle);
-  drawTruckBody(mat, t.size);
+  const bob = inDepot ? Math.sin(lastTs * 0.002 + (t.id % 7)) * 0.7 : 0;   // subtle idle bob
+  ctx.save(); ctx.translate(t.x + shakeX, t.y + bob); ctx.rotate(angle);
+  drawTruckBody(mat, t.size, { moving, spin: t.spin || 0, braked: t.braked || 0 });
   const w = CELL*0.6, h = t.size*CELL*0.9;
   if (inDepot) {
     const reach = canExit(t), need = reach && orders.some(o => o && o.mat === t.mat && (o.qty - o.done) > 0);
@@ -585,21 +636,42 @@ function drawTruck(t) {
   }
 }
 
-function drawTruckBody(mat, size) {
+function drawTruckBody(mat, size, opt) {
+  opt = opt || {};
   const w = CELL*0.56, h = size*CELL*0.88, hw = w/2, hh = h/2, cab = Math.min(CELL*0.34, h*0.34), rad = w*0.24;
-  ctx.fillStyle = 'rgba(0,0,0,0.30)'; roundRect(-hw+2, -hh+4, w, h, rad); ctx.fill();
-  const ww = w*0.16, wl = CELL*0.2;
+  // soft ground shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.24)'; roundRect(-hw+2, -hh+6, w, h, rad); ctx.fill();
+  // wheels with rolling tread
+  const ww = w*0.16, wl = CELL*0.2, spin = opt.spin || 0, period = wl*0.5, off = ((spin*0.6) % period + period) % period;
   const axles = size > 1 ? [-hh+cab+CELL*0.15, 0, hh-CELL*0.2] : [-hh+cab+CELL*0.05, hh-CELL*0.18];
-  ctx.fillStyle = '#15171d'; for (const wy of axles) { roundRect(-hw-ww*0.45, wy-wl/2, ww, wl, ww*0.35); ctx.fill(); roundRect(hw-ww*0.55, wy-wl/2, ww, wl, ww*0.35); ctx.fill(); }
+  for (const wy of axles) for (const wx of [-hw-ww*0.45, hw-ww*0.55]) {
+    ctx.fillStyle = '#15171d'; roundRect(wx, wy-wl/2, ww, wl, ww*0.35); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.13)';
+    for (let k = -1; k < 3; k++) { const ty = wy - wl/2 + off + k*period; if (ty > wy-wl/2+1 && ty < wy+wl/2-1) ctx.fillRect(wx+ww*0.22, ty, ww*0.56, 1.5); }
+  }
+  // cargo bed
   drawCargo(mat, -hh+cab, hh, w);
+  // cab
   ctx.fillStyle = '#2b303c'; roundRect(-hw, -hh, w, cab+rad, rad); ctx.fill();
-  ctx.fillStyle = 'rgba(150,205,235,0.92)'; roundRect(-hw+w*0.16, -hh+cab*0.42, w*0.68, cab*0.34, 3); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.10)'; roundRect(-hw+2, -hh+2, w-4, cab*0.28, rad*0.6); ctx.fill();  // cab rim light
+  ctx.fillStyle = 'rgba(150,205,235,0.92)'; roundRect(-hw+w*0.16, -hh+cab*0.42, w*0.68, cab*0.34, 3); ctx.fill(); // windshield
+  // headlights + forward glow when moving
   ctx.fillStyle = '#ffe08a'; const hlr = w*0.09;
   ctx.beginPath(); ctx.arc(-hw+w*0.22, -hh+hlr+1, hlr, 0, 7); ctx.fill();
   ctx.beginPath(); ctx.arc(hw-w*0.22, -hh+hlr+1, hlr, 0, 7); ctx.fill();
+  if (opt.moving) {
+    const gl = ctx.createRadialGradient(0, -hh, 1, 0, -hh, CELL*0.6);
+    gl.addColorStop(0, 'rgba(255,240,180,0.26)'); gl.addColorStop(1, 'rgba(255,240,180,0)');
+    ctx.fillStyle = gl; ctx.beginPath(); ctx.moveTo(-w*0.42,-hh); ctx.lineTo(w*0.42,-hh); ctx.lineTo(w*0.95,-hh-CELL*0.55); ctx.lineTo(-w*0.95,-hh-CELL*0.55); ctx.closePath(); ctx.fill();
+  }
+  // colour tab on cab roof
   ctx.fillStyle = mat.color; roundRect(-w*0.16, -hh+cab*0.04, w*0.32, cab*0.2, 2); ctx.fill();
+  // brake lights (rear) when braking to dock
+  if (opt.braked > 0.02) { ctx.globalAlpha = Math.min(1, opt.braked*3); ctx.fillStyle = '#ff3b30';
+    ctx.beginPath(); ctx.arc(-hw+w*0.2, hh-2, w*0.085, 0, 7); ctx.fill(); ctx.beginPath(); ctx.arc(hw-w*0.2, hh-2, w*0.085, 0, 7); ctx.fill(); ctx.globalAlpha = 1; }
+  // depth gradient overlay (top-light → bottom-shade)
   const gg = ctx.createLinearGradient(0, -hh, 0, hh);
-  gg.addColorStop(0, 'rgba(255,255,255,0.16)'); gg.addColorStop(0.45, 'rgba(255,255,255,0)'); gg.addColorStop(1, 'rgba(0,0,0,0.18)');
+  gg.addColorStop(0, 'rgba(255,255,255,0.17)'); gg.addColorStop(0.45, 'rgba(255,255,255,0)'); gg.addColorStop(1, 'rgba(0,0,0,0.20)');
   ctx.fillStyle = gg; roundRect(-hw, -hh, w, h, rad); ctx.fill();
 }
 
@@ -636,8 +708,11 @@ function drawCargo(mat, bedTop, bedBot, w) {
 
 function drawParticles() {
   for (const p of particles) { const t = p.life/p.max;
-    if (p.type === 'smoke') { ctx.globalAlpha = (1-t)*0.3; ctx.fillStyle = '#cdd6ea'; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 7); ctx.fill(); }
+    if (p.type === 'smoke') { ctx.globalAlpha = (1-t)*0.28; ctx.fillStyle = '#c7d1e6'; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 7); ctx.fill();
+      ctx.globalAlpha = (1-t)*0.14; ctx.beginPath(); ctx.arc(p.x - p.r*0.3, p.y - p.r*0.2, p.r*0.7, 0, 7); ctx.fill(); }
     else if (p.type === 'spark') { ctx.globalAlpha = 1-t; ctx.fillStyle = p.color || '#ffd166'; ctx.beginPath(); ctx.arc(p.x, p.y, p.r*(1-t*0.4), 0, 7); ctx.fill(); }
+    else if (p.type === 'confetti') { ctx.globalAlpha = 1 - t*t; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.fillStyle = p.color; ctx.fillRect(-p.s/2, -p.s*0.3, p.s, p.s*0.6); ctx.restore(); }
+    else if (p.type === 'coin') { ctx.globalAlpha = 1 - t*0.4; ctx.fillStyle = '#ffcf3f'; ctx.beginPath(); ctx.ellipse(p.x, p.y, p.s*(0.6+0.4*Math.abs(Math.sin(p.life*16))), p.s, 0, 0, 7); ctx.fill(); ctx.strokeStyle = '#c98f16'; ctx.lineWidth = 1.5; ctx.stroke(); }
     else { ctx.globalAlpha = 1-t; ctx.fillStyle = '#ffd166'; ctx.font = `bold ${Math.floor(CELL*0.32)}px system-ui`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(p.txt, p.x, p.y); } }
   ctx.globalAlpha = 1;
 }
