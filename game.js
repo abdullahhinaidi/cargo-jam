@@ -998,9 +998,11 @@ function obBuilding(x, y, w, h, seed) {
   }
 }
 // Maintenance / roadworks zone — reads naturally top-down: hazard-striped cordon,
-// a dug excavation pit with a dirt rim, and traffic cones at the corners.
+// an excavation pit (dirt rim + laid pipe), a gravel mound, a striped barrier,
+// traffic cones, and a blinking amber beacon.
 function obRoadwork(x, y, w, h, seed) {
   const cell = CELL, rnd = obRand(seed || 13);
+  const big = Math.min(w, h) >= cell * 1.6;
   ctx.fillStyle = 'rgba(0,0,0,0.28)'; roundRect(x + 3, y + 4, w - 5, h - 5, 6); ctx.fill();
   const g = ctx.createLinearGradient(0, y, 0, y + h); g.addColorStop(0, '#4a4436'); g.addColorStop(1, '#3a352a');
   ctx.fillStyle = g; roundRect(x + 2, y + 2, w - 4, h - 4, 6); ctx.fill();
@@ -1010,17 +1012,39 @@ function obRoadwork(x, y, w, h, seed) {
   const span = Math.hypot(w, h), step = Math.max(7, cell * 0.3);
   for (let s = -span; s < span; s += step) { ctx.fillStyle = (Math.round(s / step) % 2) ? '#ffcf3f' : '#20242e'; ctx.fillRect(s, -span, step * 0.55, span * 2); }
   ctx.restore();
-  // inner works zone (covers stripe centre → leaves a hazard frame) + excavation pit
+  // inner works zone (leaves a hazard frame) + excavation pit
   const m = Math.max(5, Math.min(w, h) * 0.16), ix = x + 2 + m, iy = y + 2 + m, iw = w - 4 - 2 * m, ih = h - 4 - 2 * m;
   if (iw > 6 && ih > 6) {
     const dg = ctx.createLinearGradient(0, iy, 0, iy + ih); dg.addColorStop(0, '#6f5a38'); dg.addColorStop(1, '#4f4028');
     ctx.fillStyle = dg; roundRect(ix, iy, iw, ih, 4); ctx.fill();
+    // scattered dirt specks
+    ctx.fillStyle = 'rgba(0,0,0,0.16)';
+    for (let i = 0; i < 9; i++) { ctx.beginPath(); ctx.arc(ix + rnd() * iw, iy + rnd() * ih, cell * (0.015 + rnd() * 0.02), 0, 7); ctx.fill(); }
     const pts = 8, lump = []; for (let i = 0; i < pts; i++) lump.push(0.8 + rnd() * 0.35);
     const trace = (cxp, cyp, rr) => { ctx.beginPath(); for (let i = 0; i <= pts; i++) { const a = i / pts * Math.PI * 2, L = lump[i % pts], px = cxp + Math.cos(a) * rr * L, py = cyp + Math.sin(a) * rr * L * 0.9; i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py); } ctx.closePath(); };
-    const hx = ix + iw * 0.5, hy = iy + ih * 0.52, hr = Math.min(iw, ih) * 0.34;
+    const hx = ix + iw * (big ? 0.42 : 0.5), hy = iy + ih * 0.54, hr = Math.min(iw, ih) * (big ? 0.3 : 0.34);
     ctx.fillStyle = '#7a6440'; trace(hx, hy, hr * 1.16); ctx.fill();               // dirt rim
     ctx.fillStyle = '#241c12'; trace(hx, hy, hr); ctx.fill();                      // pit
     ctx.fillStyle = 'rgba(0,0,0,0.42)'; trace(hx + hr * 0.12, hy + hr * 0.14, hr * 0.68); ctx.fill();  // depth
+    if (big) {
+      // steel pipe laid across the pit
+      const pw = hr * 0.5;
+      ctx.fillStyle = '#828b96'; roundRect(hx - hr * 1.25, hy - pw / 2, hr * 2.5, pw, pw * 0.5); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.35)'; roundRect(hx - hr * 1.25, hy - pw / 2, hr * 2.5, pw * 0.38, pw * 0.3); ctx.fill();
+      ctx.fillStyle = '#333a42'; ctx.beginPath(); ctx.ellipse(hx - hr * 1.25, hy, pw * 0.28, pw * 0.5, 0, 0, 7); ctx.fill();
+      // gravel mound in the opposite corner
+      const mx = ix + iw * 0.82, my = iy + ih * 0.26, mr = Math.min(iw, ih) * 0.22;
+      const mg = ctx.createRadialGradient(mx - mr * 0.3, my - mr * 0.4, mr * 0.2, mx, my, mr); mg.addColorStop(0, '#b89b63'); mg.addColorStop(1, '#79613a');
+      ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.beginPath(); ctx.ellipse(mx, my + mr * 0.5, mr * 1.05, mr * 0.4, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = mg; ctx.beginPath(); ctx.ellipse(mx, my, mr, mr * 0.8, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = 'rgba(0,0,0,0.2)'; for (let i = 0; i < 5; i++) { ctx.beginPath(); ctx.arc(mx + (rnd() - 0.5) * mr * 1.3, my + (rnd() - 0.5) * mr, cell * 0.022, 0, 7); ctx.fill(); }
+    }
+  }
+  // striped A-frame barrier board near the bottom edge (big zones only)
+  if (big) {
+    const by = y + h - Math.max(7, cell * 0.3), bx0 = x + w * 0.22, bx1 = x + w * 0.78, bh = Math.max(3, cell * 0.12);
+    ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fillRect(bx0, by + bh, bx1 - bx0, bh * 0.5);
+    let i = 0; for (let bx = bx0; bx < bx1; bx += bh * 1.15, i++) { ctx.fillStyle = i % 2 ? '#e0453a' : '#f4f4f4'; ctx.fillRect(bx, by, Math.min(bh * 1.15, bx1 - bx), bh); }
   }
   // traffic cones at the corners (top-down = concentric orange / white)
   const cone = (cxp, cyp) => {
@@ -1031,7 +1055,16 @@ function obRoadwork(x, y, w, h, seed) {
     ctx.fillStyle = '#e8721e'; ctx.beginPath(); ctx.arc(cxp, cyp, r * 0.32, 0, 7); ctx.fill();
   };
   const cm = Math.max(6, cell * 0.24);
-  cone(x + cm, y + cm); cone(x + w - cm, y + cm); cone(x + cm, y + h - cm); cone(x + w - cm, y + h - cm);
+  cone(x + w - cm, y + cm); cone(x + cm, y + h - cm); cone(x + w - cm, y + h - cm);
+  // blinking amber beacon on the top-left corner (time-driven pulse)
+  const t = (typeof lastTs === 'number' ? lastTs : 0);
+  const pulse = 0.5 + 0.5 * Math.sin(t * 0.006 + (seed % 7));
+  const lx = x + cm, ly = y + cm, lr = Math.max(3, cell * 0.15);
+  const glow = ctx.createRadialGradient(lx, ly, 1, lx, ly, lr * 3.2);
+  glow.addColorStop(0, 'rgba(255,176,40,' + (0.55 * pulse).toFixed(3) + ')'); glow.addColorStop(1, 'rgba(255,176,40,0)');
+  ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(lx, ly, lr * 3.2, 0, 7); ctx.fill();
+  ctx.fillStyle = 'rgba(60,40,10,0.9)'; ctx.beginPath(); ctx.arc(lx, ly, lr * 0.9, 0, 7); ctx.fill();          // housing
+  ctx.fillStyle = 'rgba(255,206,110,' + (0.45 + 0.55 * pulse).toFixed(3) + ')'; ctx.beginPath(); ctx.arc(lx, ly, lr * 0.6, 0, 7); ctx.fill();  // lamp
 }
 function drawObstacles() {
   for (const o of obstacleRects) {
