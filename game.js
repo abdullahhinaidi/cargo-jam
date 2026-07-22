@@ -1008,8 +1008,9 @@ function drawObstacles() {
     else if (k === 'containers') obContainers(x, y, w, h, seed);
     else if (k === 'trees') obTrees(x, y, w, h, seed);
     else if (k === 'building') obBuilding(x, y, w, h, seed);
-    else if (k === 'mountain') obMountain(x, y, w, h, seed);   // parked: top-down look still under review
-    else obBoulders(x, y, w, h, seed);   // 'rock' / default → natural top-down rocks
+    else if (k === 'mountain') obMountain(x, y, w, h, seed);   // parked: needs a better top-down solution
+    else if (k === 'boulders') obBoulders(x, y, w, h, seed);   // parked: rocky look not a fit yet
+    else obContainers(x, y, w, h, seed);   // 'rock' / default → industrial fallback that fits the yard
   }
 }
 
