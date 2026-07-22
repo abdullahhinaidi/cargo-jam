@@ -101,19 +101,19 @@ const OBSTACLE_LEVELS = [
   // 31 — warehouse maze: two wall spines force single-file lanes (front truck blocks its lane)
   makeMapLevel({ cols: 8, rows: 8, slots: 4, bays: 4, lives: 3, patience: 44, matCount: 5, bigEvery: 4,
     obstacles: [{ x: 2, y: 0, w: 1, h: 5, kind: 'building' }, { x: 5, y: 0, w: 1, h: 5, kind: 'building' }] }),
-  // 32 — a rocky ridge low and to one side, so the deep crowded corner stays
+  // 32 — a mountain ridge low and to one side, so the deep crowded corner stays
   makeMapLevel({ cols: 9, rows: 8, slots: 4, bays: 4, lives: 3, patience: 43, matCount: 6, bigEvery: 4,
-    obstacles: [{ x: 4, y: 4, w: 4, h: 2, kind: 'rock' }] }),
-  // 33 — big lake, packed yard, four bays only
+    obstacles: [{ x: 4, y: 4, w: 4, h: 2, kind: 'mountain' }] }),
+  // 33 — a river crossed by a bridge, packed yard, four bays only
   makeMapLevel({ cols: 9, rows: 9, slots: 4, bays: 4, lives: 3, patience: 43, matCount: 6, bigEvery: 4,
-    obstacles: [{ x: 3, y: 3, w: 3, h: 3, kind: 'water' }] }),
-  // 34 — scattered pillars break sight-lines all over a dense yard
+    obstacles: [{ x: 3, y: 3, w: 3, h: 3, kind: 'bridge' }] }),
+  // 34 — scattered terrain props break sight-lines all over a dense yard
   makeMapLevel({ cols: 9, rows: 8, slots: 5, bays: 4, lives: 3, patience: 42, matCount: 6, bigEvery: 4,
-    obstacles: [{ x: 2, y: 1, w: 1, h: 2, kind: 'rock' }, { x: 6, y: 1, w: 1, h: 2, kind: 'rock' },
-      { x: 4, y: 3, w: 1, h: 2, kind: 'rock' }, { x: 2, y: 5, w: 1, h: 2, kind: 'rock' }, { x: 6, y: 5, w: 1, h: 2, kind: 'rock' }] }),
-  // 35 — the big warehouse: all six materials, densest, tightest
+    obstacles: [{ x: 2, y: 1, w: 1, h: 2, kind: 'mountain' }, { x: 6, y: 1, w: 1, h: 2, kind: 'water' },
+      { x: 4, y: 3, w: 1, h: 2, kind: 'boulders' }, { x: 2, y: 5, w: 1, h: 2, kind: 'containers' }, { x: 6, y: 5, w: 1, h: 2, kind: 'trees' }] }),
+  // 35 — the big container yard: all six materials, densest, tightest
   makeMapLevel({ cols: 9, rows: 9, slots: 5, bays: 4, lives: 4, patience: 42, matCount: 6, bigEvery: 4,
-    obstacles: [{ x: 3, y: 2, w: 4, h: 3, kind: 'building' }] }),
+    obstacles: [{ x: 3, y: 2, w: 4, h: 3, kind: 'containers' }] }),
 ];
 
 const LEVELS = Array.from({ length: 30 }, (_, i) => makeDepot(i)).concat(OBSTACLE_LEVELS);
