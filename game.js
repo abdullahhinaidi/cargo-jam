@@ -872,33 +872,42 @@ function drawYard() {
 /* ---------- Obstacle art library (diorama props; deterministic → game-loop safe) ---------- */
 function obRand(seed) { return function () { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 function obShade(hex, amt) { const c = hex.replace('#', ''); const cl = v => Math.max(0, Math.min(255, v)); return 'rgb(' + cl(parseInt(c.substr(0, 2), 16) + amt) + ',' + cl(parseInt(c.substr(2, 2), 16) + amt) + ',' + cl(parseInt(c.substr(4, 2), 16) + amt) + ')'; }
-function obPeak(cx, baseY, height, half, lightCol, darkCol, ridgeCol, snow, rnd) {
-  const apexX = cx + (rnd() - 0.5) * half * 0.22, apexY = baseY - height;
-  const lMx = cx - half * 0.5, lMy = baseY - height * 0.46, rMx = cx + half * 0.55, rMy = baseY - height * 0.4;
-  ctx.beginPath(); ctx.moveTo(cx - half, baseY); ctx.lineTo(lMx, lMy); ctx.lineTo(apexX, apexY); ctx.lineTo(cx, baseY); ctx.closePath();
-  const gl = ctx.createLinearGradient(cx - half, apexY, cx, baseY); gl.addColorStop(0, lightCol); gl.addColorStop(1, obShade(lightCol, -22)); ctx.fillStyle = gl; ctx.fill();
-  ctx.beginPath(); ctx.moveTo(apexX, apexY); ctx.lineTo(rMx, rMy); ctx.lineTo(cx + half, baseY); ctx.lineTo(cx, baseY); ctx.closePath();
-  const gr = ctx.createLinearGradient(cx, apexY, cx + half, baseY); gr.addColorStop(0, darkCol); gr.addColorStop(1, obShade(darkCol, -14)); ctx.fillStyle = gr; ctx.fill();
-  ctx.strokeStyle = ridgeCol; ctx.lineWidth = Math.max(1, half * 0.05); ctx.lineJoin = 'round';
-  ctx.beginPath(); ctx.moveTo(cx - half, baseY); ctx.lineTo(lMx, lMy); ctx.lineTo(apexX, apexY); ctx.stroke();
-  ctx.strokeStyle = 'rgba(0,0,0,0.22)'; ctx.lineWidth = Math.max(1, half * 0.03);
-  ctx.beginPath(); ctx.moveTo(apexX, apexY + height * 0.12); ctx.lineTo(cx + half * 0.28, baseY - height * 0.18); ctx.stroke();
-  if (snow) {
-    const sH = height * 0.34;
-    ctx.beginPath(); ctx.moveTo(apexX, apexY);
-    ctx.lineTo(apexX + half * 0.24, apexY + sH * 0.82); ctx.lineTo(apexX + half * 0.09, apexY + sH * 0.58);
-    ctx.lineTo(apexX - half * 0.02, apexY + sH); ctx.lineTo(apexX - half * 0.15, apexY + sH * 0.55);
-    ctx.lineTo(apexX - half * 0.27, apexY + sH * 0.82); ctx.closePath(); ctx.fillStyle = '#eef4ff'; ctx.fill();
-    ctx.fillStyle = 'rgba(150,175,220,0.55)';
-    ctx.beginPath(); ctx.moveTo(apexX, apexY); ctx.lineTo(apexX + half * 0.24, apexY + sH * 0.82); ctx.lineTo(apexX + half * 0.09, apexY + sH * 0.58); ctx.closePath(); ctx.fill();
+function obMix(a, b, t) { const pa = a.replace('#', ''), pb = b.replace('#', ''), ch = (o) => parseInt(pa.substr(o, 2), 16) + (parseInt(pb.substr(o, 2), 16) - parseInt(pa.substr(o, 2), 16)) * t; return 'rgb(' + Math.round(ch(0)) + ',' + Math.round(ch(2)) + ',' + Math.round(ch(4)) + ')'; }
+// Top-down mountain: a rocky massif seen from above — nested contour rings from a dark
+// base to a light peak (offset toward the top-left light), radial ridge creases, snow cap.
+function obTopPeak(cx, cy, rx, ry, lump, pts, baseCol, peakCol, snowScale) {
+  const pkx = cx - rx * 0.16, pky = cy - ry * 0.18;
+  const trace = (ex, ey, sx, sy) => { ctx.beginPath();
+    for (let i = 0; i <= pts; i++) { const a = i / pts * Math.PI * 2, L = lump[i % pts], px = ex + Math.cos(a) * sx * L, py = ey + Math.sin(a) * sy * L; i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py); }
+    ctx.closePath(); };
+  const layers = 7;
+  for (let l = 0; l < layers; l++) { const t = l / (layers - 1), s = 1 - t * 0.8, ex = cx + (pkx - cx) * t, ey = cy + (pky - cy) * t;
+    ctx.fillStyle = obMix(baseCol, peakCol, t); trace(ex, ey, rx * s, ry * s); ctx.fill(); }
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = 'rgba(0,0,0,0.16)'; ctx.lineWidth = Math.max(1, rx * 0.05);
+  for (let i = 0; i < pts; i += 2) { const a = i / pts * Math.PI * 2, L = lump[i % pts]; ctx.beginPath(); ctx.moveTo(pkx, pky); ctx.lineTo(cx + Math.cos(a) * rx * L, cy + Math.sin(a) * ry * L); ctx.stroke(); }
+  ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = Math.max(1, rx * 0.035);
+  for (let i = 6; i <= 9; i++) { const a = i / pts * Math.PI * 2, L = lump[i % pts]; ctx.beginPath(); ctx.moveTo(pkx, pky); ctx.lineTo(cx + Math.cos(a) * rx * 0.72 * L, cy + Math.sin(a) * ry * 0.72 * L); ctx.stroke(); }
+  if (snowScale > 0) {
+    trace(pkx, pky, rx * snowScale, ry * snowScale); ctx.fillStyle = '#eef4ff'; ctx.fill();
+    trace(pkx + rx * 0.06, pky + ry * 0.07, rx * snowScale * 0.6, ry * snowScale * 0.6); ctx.fillStyle = 'rgba(150,175,220,0.5)'; ctx.fill();
   }
 }
 function obMountain(x, y, w, h, seed) {
   const cell = CELL, rnd = obRand(seed || 7);
-  ctx.fillStyle = 'rgba(0,0,0,0.32)'; ctx.beginPath(); ctx.ellipse(x + w / 2, y + h - cell * 0.12, w * 0.47, cell * 0.14, 0, 0, 7); ctx.fill();
-  const baseY = y + h - cell * 0.12, peaks = Math.max(1, Math.round(w / cell));
-  obPeak(x + w * 0.52, baseY, h * 0.6, w * 0.5, '#5a6170', '#3f4552', '#6b7280', false, rnd);
-  for (let p = 0; p < peaks; p++) { const cx = x + w * (p + 0.5) / peaks, half = (w / peaks) * 0.66, ph = h * (0.74 + rnd() * 0.2); obPeak(cx, baseY, ph, half, '#8b93a3', '#4d5462', '#c2cbdd', ph > h * 0.62, rnd); }
+  const cx = x + w / 2, cy = y + h / 2, pts = 12, lump = [];
+  for (let i = 0; i < pts; i++) lump.push(0.80 + rnd() * 0.26);
+  // cast shadow (offset down-right, like the trucks' shadow)
+  ctx.fillStyle = 'rgba(0,0,0,0.30)'; ctx.beginPath();
+  for (let i = 0; i <= pts; i++) { const a = i / pts * Math.PI * 2, L = lump[i % pts], px = cx + cell * 0.1 + Math.cos(a) * w * 0.46 * L, py = cy + cell * 0.12 + Math.sin(a) * h * 0.46 * L; i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py); }
+  ctx.closePath(); ctx.fill();
+  // wide footprints read as a ridge: a smaller secondary peak beside the main massif
+  if (w >= h * 1.7) {
+    obTopPeak(x + w * 0.68, cy + h * 0.06, w * 0.26, h * 0.4, lump, pts, '#3c434f', '#9aa3b4', 0.24);
+    obTopPeak(x + w * 0.34, cy, w * 0.3, h * 0.46, lump, pts, '#3c434f', '#b3bccd', 0.3);
+  } else {
+    obTopPeak(cx, cy, w * 0.46, h * 0.46, lump, pts, '#3c434f', '#b3bccd', 0.28);
+  }
 }
 function obWater(x, y, w, h, seed) {
   const cell = CELL, r = Math.min(cell * 0.3, 14), rnd = obRand(seed || 3);
