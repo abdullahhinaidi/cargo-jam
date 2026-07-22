@@ -53,6 +53,9 @@ let patienceBase = 20;
 const TIME_FACTOR = 1.8;   // strategy tuning: stretch every order's patience so play is about thinking
 let lastTs = 0;
 let doorAnim = [];     // per-bay door open amount 0..1
+let pendingConfirm = null;   // callback awaiting the confirm modal
+let REDUCE_MOTION = false;
+try { const _mq = matchMedia('(prefers-reduced-motion: reduce)'); REDUCE_MOTION = _mq.matches; _mq.addEventListener ? _mq.addEventListener('change', e => REDUCE_MOTION = e.matches) : _mq.addListener && _mq.addListener(e => REDUCE_MOTION = e.matches); } catch (e) {}
 
 /* ---------- DOM ---------- */
 const el = {};
@@ -64,7 +67,7 @@ function $(id){ return document.getElementById(id); }
 let musicTimer = null;
 function showScreen(name) {
   screens.forEach(s => $(s).classList.toggle('hidden', s !== name));
-  hideOverlay('pauseOverlay'); hideOverlay('resultOverlay'); hideOverlay('startOverlay');
+  hideOverlay('pauseOverlay'); hideOverlay('resultOverlay'); hideOverlay('startOverlay'); hideOverlay('helpOverlay'); hideOverlay('confirmOverlay');
   if (name === 'menu') { $('menuStars').textContent = '⭐ ' + totalStars() + ' / ' + (LEVELS.length * 3); $('menuCoins').textContent = '🪙 ' + fmt(save.coins); }
   if (name === 'levels') buildLevelSelect();
   if (name === 'profile') buildProfile();
@@ -200,17 +203,19 @@ function noise(dur, filter, freq, q, vol, sweepTo) {
     s.connect(f); f.connect(g); g.connect(mgain()); s.start(t0); s.stop(t0 + dur + 0.02);
   } catch (e) {}
 }
+// haptic feedback — respects the sound toggle; silent no-op where unsupported
+function buzz(p) { try { if (save.sfx && navigator.vibrate) navigator.vibrate(p); } catch (e) {} }
 const sndDrive  = () => { tone(70, 0.22, 'sawtooth', 0.05, 150); tone(120, 0.22, 'square', 0.03, 210); };        // engine revs up
-const sndLoad   = () => { tone(240, 0.05, 'square', 0.05, 180); noise(0.05, 'bandpass', 1400, 4, 0.05); };        // cargo clunk
-const sndDepart = () => { noise(0.2, 'lowpass', 1200, 0.6, 0.045, 500); tone(150, 0.16, 'triangle', 0.045, 110); }; // gentle air-brake + pull away
+const sndLoad   = () => { tone(240, 0.05, 'square', 0.05, 180); noise(0.05, 'bandpass', 1400, 4, 0.05); buzz(10); };  // cargo clunk
+const sndDepart = () => { noise(0.2, 'lowpass', 1200, 0.6, 0.045, 500); tone(150, 0.16, 'triangle', 0.045, 110); buzz(18); }; // gentle air-brake + pull away
 const sndDock   = () => { tone(520, 0.05, 'sine', 0.05); setTimeout(() => tone(390, 0.06, 'sine', 0.05), 60); };  // reverse confirm
 const sndDoor   = () => noise(0.4, 'lowpass', 520, 0.8, 0.05, 300);                                               // roll-up door rumble
-const sndBlocked= () => tone(110, 0.16, 'sawtooth', 0.09, 80);                                                    // low honk
-const sndExpire = () => { tone(330, 0.18, 'sawtooth', 0.1, 190); setTimeout(() => tone(196, 0.24, 'sawtooth', 0.09, 120), 110); };
+const sndBlocked= () => { tone(110, 0.16, 'sawtooth', 0.09, 80); buzz(35); };                                     // low honk
+const sndExpire = () => { tone(330, 0.18, 'sawtooth', 0.1, 190); setTimeout(() => tone(196, 0.24, 'sawtooth', 0.09, 120), 110); buzz([50, 40, 50]); };
 const sndStar   = () => tone(1046, 0.14, 'triangle', 0.12, 1568);
 const sndCoin   = () => { tone(988, 0.05, 'square', 0.08, 1318); setTimeout(() => tone(1318, 0.09, 'square', 0.07, 1568), 55); noise(0.05, 'highpass', 6000, 1, 0.03); }; // cha-ching
-const sndWin    = () => [523, 659, 784, 1047, 1319].forEach((f, i) => setTimeout(() => tone(f, 0.2, 'triangle', 0.12), i * 110));
-const sndLose   = () => [440, 330, 262, 196].forEach((f, i) => setTimeout(() => tone(f, 0.3, 'sawtooth', 0.11, f * 0.92), i * 150));
+const sndWin    = () => { [523, 659, 784, 1047, 1319].forEach((f, i) => setTimeout(() => tone(f, 0.2, 'triangle', 0.12), i * 110)); buzz([20, 40, 20, 40, 80]); };
+const sndLose   = () => { [440, 330, 262, 196].forEach((f, i) => setTimeout(() => tone(f, 0.3, 'sawtooth', 0.11, f * 0.92), i * 150)); buzz([80, 50, 80, 50, 160]); };
 
 // gentle ambient music loop
 const MUSIC_NOTES = [196, 261.6, 329.6, 392, 329.6, 261.6, 220, 261.6];
@@ -1058,7 +1063,7 @@ function obRoadwork(x, y, w, h, seed) {
   cone(x + w - cm, y + cm); cone(x + cm, y + h - cm); cone(x + w - cm, y + h - cm);
   // blinking amber beacon on the top-left corner (time-driven pulse)
   const t = (typeof lastTs === 'number' ? lastTs : 0);
-  const pulse = 0.5 + 0.5 * Math.sin(t * 0.006 + (seed % 7));
+  const pulse = REDUCE_MOTION ? 0.85 : 0.5 + 0.5 * Math.sin(t * 0.006 + (seed % 7));
   const lx = x + cm, ly = y + cm, lr = Math.max(3, cell * 0.15);
   const glow = ctx.createRadialGradient(lx, ly, 1, lx, ly, lr * 3.2);
   glow.addColorStop(0, 'rgba(255,176,40,' + (0.55 * pulse).toFixed(3) + ')'); glow.addColorStop(1, 'rgba(255,176,40,0)');
@@ -1094,12 +1099,19 @@ function drawTruck(t) {
   ctx.save(); ctx.translate(t.x + shakeX, t.y + bob); ctx.rotate(angle);
   drawTruckBody(mat, t.size, { moving, spin: t.spin || 0, braked: t.braked || 0 });
   const w = CELL*0.6, h = t.size*CELL*0.9;
+  let showNeedBadge = false;
   if (inDepot) {
     const reach = canExit(t), need = reach && orders.some(o => o && o.mat === t.mat && (o.qty - o.done) > 0);
-    if (need && bays.includes(null)) { ctx.strokeStyle = 'rgba(46,194,126,0.95)'; ctx.lineWidth = 3; roundRect(-w/2-2,-h/2-2,w+4,h+4,CELL*0.18); ctx.stroke(); }
-    else if (reach) { ctx.strokeStyle = 'rgba(255,255,255,0.28)'; ctx.lineWidth = 2; roundRect(-w/2-2,-h/2-2,w+4,h+4,CELL*0.18); ctx.stroke(); }
+    if (need && bays.includes(null)) { showNeedBadge = true; ctx.setLineDash([]); ctx.strokeStyle = 'rgba(46,194,126,0.95)'; ctx.lineWidth = 3; roundRect(-w/2-2,-h/2-2,w+4,h+4,CELL*0.18); ctx.stroke(); }
+    else if (reach) { ctx.setLineDash([5,4]); ctx.strokeStyle = 'rgba(255,255,255,0.34)'; ctx.lineWidth = 2; roundRect(-w/2-2,-h/2-2,w+4,h+4,CELL*0.18); ctx.stroke(); ctx.setLineDash([]); }
   }
   ctx.restore();
+  if (showNeedBadge) {   // colour-blind-safe cue: a ✓ badge above the truck (shape, not just colour)
+    const by = t.y - CELL * 0.52;
+    ctx.fillStyle = 'rgba(46,194,126,0.96)'; ctx.beginPath(); ctx.arc(t.x, by, CELL * 0.15, 0, 7); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.fillStyle = '#0d1f16'; ctx.font = `900 ${Math.floor(CELL * 0.2)}px system-ui`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('✓', t.x, by + CELL * 0.012);
+  }
   if (t.state === 'bay' || t.state === 'toBay') {
     const pw = CELL*0.16, gap = CELL*0.05, total = t.load*pw + (t.load-1)*gap; let sx = t.x - total/2;
     const py = t.y - t.size*CELL*0.5 - CELL*0.12;
@@ -1330,7 +1342,17 @@ $('retryBtn').addEventListener('click', () => { hideOverlay('resultOverlay'); lo
 $('resultMenuBtn').addEventListener('click', () => { showScreen('menu'); });
 $('sfxToggle').addEventListener('change', e => { save.sfx = e.target.checked; persist(); });
 $('musicToggle').addEventListener('change', e => { save.music = e.target.checked; persist(); updateMusic(); });
-$('resetBtn').addEventListener('click', () => { save = { unlocked: 1, stars: {}, coins: 0, sfx: save.sfx, music: save.music }; persist(); buildLevelSelect(); });
+$('resetBtn').addEventListener('click', () => {
+  $('confirmTitle').textContent = 'إعادة ضبط التقدّم';
+  $('confirmMsg').textContent = 'سيُمسح كل تقدّمك: النجوم والعملات والمراحل المفتوحة. لا يمكن التراجع.';
+  pendingConfirm = () => { save = { unlocked: 1, stars: {}, coins: 0, sfx: save.sfx, music: save.music }; persist(); buildLevelSelect(); showScreen('menu'); };
+  showOverlay('confirmOverlay');
+});
+$('confirmYes').addEventListener('click', () => { hideOverlay('confirmOverlay'); const f = pendingConfirm; pendingConfirm = null; if (f) f(); });
+$('confirmNo').addEventListener('click', () => { hideOverlay('confirmOverlay'); pendingConfirm = null; });
+$('howBtn').addEventListener('click', () => showOverlay('helpOverlay'));
+$('pauseHowBtn').addEventListener('click', () => { hideOverlay('pauseOverlay'); showOverlay('helpOverlay'); });
+$('helpCloseBtn').addEventListener('click', () => { hideOverlay('helpOverlay'); if (running && paused) showOverlay('pauseOverlay'); });
 
 /* ---------- Boot ---------- */
 window.addEventListener('resize', () => { if (running) resize(); });

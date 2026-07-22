@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>قائد الشحنات — Cargo Commander</title>
-  <link rel="stylesheet" href="style.css?v=26" />
+  <link rel="stylesheet" href="style.css?v=27" />
 
   <!-- ============================================================
        إحصاءات GoatCounter (زوّار + أحداث اللاعبين) — بدون كوكيز، بدون بيانات شخصية.
@@ -62,6 +62,7 @@
         <button class="btn btn-primary big" id="playBtn">▶ ابدأ اللعب</button>
         <button class="btn" id="levelsBtn">🗺️ المراحل</button>
         <button class="btn" id="profileBtn" data-nav="profile">🎖️ ملفّي</button>
+        <button class="btn" id="howBtn">❓ كيف ألعب</button>
         <button class="btn" id="settingsBtn">⚙️ الإعدادات</button>
       </div>
       <div class="menu-stats" data-nav="profile" title="افتح ملفّي">
@@ -157,10 +158,10 @@
     </header>
     <div id="stage"><canvas id="board"></canvas></div>
     <footer id="controls" class="tools">
-      <button class="tool" id="toolHint" aria-label="تلميح"><span class="tool-ic">💡</span><span class="tool-cost">تلميح</span></button>
-      <button class="tool" id="toolRefresh" aria-label="تغيير الطلبات"><span class="tool-ic">🔄</span><span class="tool-cost">🪙25</span></button>
-      <button class="tool" id="toolShuffle" aria-label="خلط الساحة"><span class="tool-ic">🔀</span><span class="tool-cost">🪙40</span></button>
-      <button class="tool" id="toolEject" aria-label="نقل شاحنة للشارع"><span class="tool-ic">🚀</span><span class="tool-cost">🪙60</span></button>
+      <button class="tool" id="toolHint" aria-label="تلميح: يبرز شاحنة مفيدة"><span class="tool-ic">💡</span><span class="tool-name">تلميح</span><span class="tool-cost free">مجاني</span></button>
+      <button class="tool" id="toolRefresh" aria-label="تغيير الطلبات الحالية"><span class="tool-ic">🔄</span><span class="tool-name">تغيير</span><span class="tool-cost">🪙25</span></button>
+      <button class="tool" id="toolShuffle" aria-label="خلط مواقع الشاحنات"><span class="tool-ic">🔀</span><span class="tool-name">خلط</span><span class="tool-cost">🪙40</span></button>
+      <button class="tool" id="toolEject" aria-label="إخراج شاحنة إلى الشارع"><span class="tool-ic">🚀</span><span class="tool-name">إخراج</span><span class="tool-cost">🪙60</span></button>
     </footer>
   </section>
 
@@ -170,6 +171,7 @@
       <h1>⏸️ إيقاف مؤقّت</h1>
       <div class="menu-buttons">
         <button class="btn btn-primary" id="resumeBtn">▶ استئناف</button>
+        <button class="btn" id="pauseHowBtn">❓ كيف ألعب</button>
         <button class="btn" id="pauseRestartBtn">↻ إعادة المرحلة</button>
         <button class="btn" id="pauseMenuBtn">🏠 القائمة الرئيسية</button>
       </div>
@@ -194,14 +196,44 @@
   <div id="startOverlay" class="overlay hidden">
     <div class="overlay-card">
       <h1 id="startTitle">المرحلة 1</h1>
-      <p id="startSub">اسحب الشاحنة المطلوبة إلى رصيف التحميل. الإطار الأخضر = مطلوبة الآن.</p>
+      <p id="startSub">المس الشاحنة المطلوبة لإرسالها إلى رصيف التحميل. الإطار الأخضر ✓ = مطلوبة الآن.</p>
       <button class="btn btn-primary big" id="startBtn">ابدأ</button>
+    </div>
+  </div>
+
+  <!-- ===================== HOW TO PLAY ===================== -->
+  <div id="helpOverlay" class="overlay hidden">
+    <div class="overlay-card help-card">
+      <h1>❓ كيف ألعب</h1>
+      <div class="help-body">
+        <p class="help-goal">🎯 وصّل كل الشاحنات: املأ الطلبات قبل نفاد صبر الزبائن.</p>
+        <div class="help-row"><span class="help-ic">👆</span><span><b>المس</b> شاحنة قابلة للخروج فتنطلق إلى رصيف تحميل فاضٍ.</span></div>
+        <div class="help-row"><span class="help-ic">🚧</span><span>الشاحنة تخرج فقط إذا كان طريقها <b>باتجاه وجهتها</b> فاضياً — هذي هي الزحمة.</span></div>
+        <div class="help-row"><span class="help-legend green">✓</span><span><b>إطار أخضر</b> = مطلوبة الآن، وصّلها فوراً.</span></div>
+        <div class="help-row"><span class="help-legend white"></span><span><b>إطار أبيض متقطّع</b> = تقدر تحرّكها (غير مطلوبة حالياً).</span></div>
+        <div class="help-row"><span class="help-ic">⏳</span><span>كل طلب له <b>شريط صبر</b>؛ إذا نفد خسرت قلباً. صفر قلوب = خسارة.</span></div>
+        <div class="help-row"><span class="help-ic">✨</span><span><b>الطلب الذهبي</b>: وقت أقصر لكن <b>مكافأة مضاعفة</b>.</span></div>
+        <div class="help-row"><span class="help-ic">🧰</span><span><b>الأدوات</b> بالأسفل: تلميح (مجاني)، وتغيير/خلط/إخراج مقابل عملات.</span></div>
+      </div>
+      <button class="btn btn-primary" id="helpCloseBtn">فهمت 👍</button>
+    </div>
+  </div>
+
+  <!-- ===================== CONFIRM ===================== -->
+  <div id="confirmOverlay" class="overlay hidden">
+    <div class="overlay-card">
+      <h1 id="confirmTitle">تأكيد</h1>
+      <p id="confirmMsg"></p>
+      <div class="menu-buttons">
+        <button class="btn danger" id="confirmYes">نعم، احذف</button>
+        <button class="btn" id="confirmNo">إلغاء</button>
+      </div>
     </div>
   </div>
 
 </div>
 
-  <script src="levels.js?v=26"></script>
-  <script src="game.js?v=26"></script>
+  <script src="levels.js?v=27"></script>
+  <script src="game.js?v=27"></script>
 </body>
 </html>
