@@ -997,6 +997,42 @@ function obBuilding(x, y, w, h, seed) {
     ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 1; for (let yy = dy + 4; yy < dy + dh - 2; yy += Math.max(4, dh * 0.16)) line(dx + 2, yy, dx + dwi - 2, yy);
   }
 }
+// Maintenance / roadworks zone — reads naturally top-down: hazard-striped cordon,
+// a dug excavation pit with a dirt rim, and traffic cones at the corners.
+function obRoadwork(x, y, w, h, seed) {
+  const cell = CELL, rnd = obRand(seed || 13);
+  ctx.fillStyle = 'rgba(0,0,0,0.28)'; roundRect(x + 3, y + 4, w - 5, h - 5, 6); ctx.fill();
+  const g = ctx.createLinearGradient(0, y, 0, y + h); g.addColorStop(0, '#4a4436'); g.addColorStop(1, '#3a352a');
+  ctx.fillStyle = g; roundRect(x + 2, y + 2, w - 4, h - 4, 6); ctx.fill();
+  // diagonal hazard stripes clipped to the plot
+  ctx.save(); roundRect(x + 2, y + 2, w - 4, h - 4, 6); ctx.clip();
+  ctx.translate(x + w / 2, y + h / 2); ctx.rotate(-Math.PI / 4);
+  const span = Math.hypot(w, h), step = Math.max(7, cell * 0.3);
+  for (let s = -span; s < span; s += step) { ctx.fillStyle = (Math.round(s / step) % 2) ? '#ffcf3f' : '#20242e'; ctx.fillRect(s, -span, step * 0.55, span * 2); }
+  ctx.restore();
+  // inner works zone (covers stripe centre → leaves a hazard frame) + excavation pit
+  const m = Math.max(5, Math.min(w, h) * 0.16), ix = x + 2 + m, iy = y + 2 + m, iw = w - 4 - 2 * m, ih = h - 4 - 2 * m;
+  if (iw > 6 && ih > 6) {
+    const dg = ctx.createLinearGradient(0, iy, 0, iy + ih); dg.addColorStop(0, '#6f5a38'); dg.addColorStop(1, '#4f4028');
+    ctx.fillStyle = dg; roundRect(ix, iy, iw, ih, 4); ctx.fill();
+    const pts = 8, lump = []; for (let i = 0; i < pts; i++) lump.push(0.8 + rnd() * 0.35);
+    const trace = (cxp, cyp, rr) => { ctx.beginPath(); for (let i = 0; i <= pts; i++) { const a = i / pts * Math.PI * 2, L = lump[i % pts], px = cxp + Math.cos(a) * rr * L, py = cyp + Math.sin(a) * rr * L * 0.9; i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py); } ctx.closePath(); };
+    const hx = ix + iw * 0.5, hy = iy + ih * 0.52, hr = Math.min(iw, ih) * 0.34;
+    ctx.fillStyle = '#7a6440'; trace(hx, hy, hr * 1.16); ctx.fill();               // dirt rim
+    ctx.fillStyle = '#241c12'; trace(hx, hy, hr); ctx.fill();                      // pit
+    ctx.fillStyle = 'rgba(0,0,0,0.42)'; trace(hx + hr * 0.12, hy + hr * 0.14, hr * 0.68); ctx.fill();  // depth
+  }
+  // traffic cones at the corners (top-down = concentric orange / white)
+  const cone = (cxp, cyp) => {
+    const r = Math.max(3, cell * 0.15);
+    ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(cxp + 1, cyp + 2, r * 1.1, r * 0.6, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = '#e8721e'; ctx.beginPath(); ctx.arc(cxp, cyp, r, 0, 7); ctx.fill();
+    ctx.fillStyle = '#f2f2f2'; ctx.beginPath(); ctx.arc(cxp, cyp, r * 0.64, 0, 7); ctx.fill();
+    ctx.fillStyle = '#e8721e'; ctx.beginPath(); ctx.arc(cxp, cyp, r * 0.32, 0, 7); ctx.fill();
+  };
+  const cm = Math.max(6, cell * 0.24);
+  cone(x + cm, y + cm); cone(x + w - cm, y + cm); cone(x + cm, y + h - cm); cone(x + w - cm, y + h - cm);
+}
 function drawObstacles() {
   for (const o of obstacleRects) {
     const x = L.lotX + o.x * CELL, y = L.lotY + o.y * CELL, w = o.w * CELL, h = o.h * CELL;
@@ -1004,13 +1040,13 @@ function drawObstacles() {
     const k = o.kind;
     if (k === 'water') obWater(x, y, w, h, seed);
     else if (k === 'bridge') obBridge(x, y, w, h, seed);
-    else if (k === 'boulders') obBoulders(x, y, w, h, seed);
+    else if (k === 'roadwork') obRoadwork(x, y, w, h, seed);
     else if (k === 'containers') obContainers(x, y, w, h, seed);
     else if (k === 'trees') obTrees(x, y, w, h, seed);
     else if (k === 'building') obBuilding(x, y, w, h, seed);
-    else if (k === 'mountain') obMountain(x, y, w, h, seed);   // parked: needs a better top-down solution
-    else if (k === 'boulders') obBoulders(x, y, w, h, seed);   // parked: rocky look not a fit yet
-    else obContainers(x, y, w, h, seed);   // 'rock' / default → industrial fallback that fits the yard
+    else if (k === 'boulders') obBoulders(x, y, w, h, seed);   // parked
+    else if (k === 'mountain') obMountain(x, y, w, h, seed);   // parked
+    else obContainers(x, y, w, h, seed);   // legacy 'rock' / default → industrial fallback
   }
 }
 
