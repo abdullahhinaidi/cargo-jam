@@ -82,11 +82,12 @@ function buildLevelSelect() {
   const TEST_FROM = 30;   // the obstacle test levels (31+) are always open
   for (let i = 0; i < LEVELS.length; i++) {
     const isTest = i >= TEST_FROM;
+    const isShowcase = i === LEVELS.length - 1;
     const unlocked = i < save.unlocked || isTest;
     const st = save.stars[i] || 0;
     const d = document.createElement('div');
-    d.className = 'lvl' + (unlocked ? '' : ' locked') + (isTest ? ' test' : '') + (i === levelIndex ? ' current' : '');
-    d.innerHTML = `<span class="num">${i + 1}</span><span class="lvl-stars">${isTest ? '🧪' : (st ? '★'.repeat(st) + '☆'.repeat(3 - st) : '')}</span>`;
+    d.className = 'lvl' + (unlocked ? '' : ' locked') + (isTest ? ' test' : '') + (isShowcase ? ' showcase' : '') + (i === levelIndex ? ' current' : '');
+    d.innerHTML = `<span class="num">${i + 1}</span><span class="lvl-stars">${isShowcase ? '🎨' : (isTest ? '🧪' : (st ? '★'.repeat(st) + '☆'.repeat(3 - st) : ''))}</span>`;
     if (unlocked) d.addEventListener('click', () => startLevel(i));
     grid.appendChild(d);
   }
