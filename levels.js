@@ -36,9 +36,31 @@ function skipsFor(cols, rows, i) {
   return out;
 }
 
+function campaignObstacles(i, cols, rows) {
+  if (i < 7) return [];
+  const cx = Math.floor(cols / 2), cy = Math.floor(rows / 2);
+  if (i < 12) return [{ x: Math.max(1, cx - 1), y: Math.max(1, cy - 1), w: 1, h: 2, kind: 'building' }];
+  if (i < 17) return [{ x: Math.max(1, cols - 3), y: Math.max(1, cy - 1), w: 2, h: 1, kind: 'water' }];
+  if (i < 22) return [
+    { x: Math.max(1, cx - 2), y: Math.max(1, cy - 2), w: 2, h: 1, kind: 'trees' },
+    { x: Math.max(1, cx), y: Math.max(1, rows - 3), w: 2, h: 1, kind: 'bridge' },
+  ];
+  if (i < 26) return [
+    { x: Math.max(1, cx - 2), y: Math.max(1, cy - 1), w: 2, h: 2, kind: 'containers' },
+    { x: Math.max(1, cols - 3), y: Math.max(1, cy - 2), w: 1, h: 2, kind: 'boulders' },
+  ];
+  return [
+    { x: Math.max(1, cx - 2), y: Math.max(1, cy - 2), w: 2, h: 2, kind: 'containers' },
+    { x: Math.max(1, cols - 3), y: Math.max(1, cy - 1), w: 2, h: 1, kind: 'bridge' },
+  ];
+}
+
 function makeDepot(i) {
   const [cols, rows] = SIZES[i];
   const mats = matsFor(i);
+  const obstacles = campaignObstacles(i, cols, rows);
+  const obstacleCells = new Set();
+  for (const o of obstacles) for (let dy = 0; dy < o.h; dy++) for (let dx = 0; dx < o.w; dx++) obstacleCells.add((o.x + dx) + ',' + (o.y + dy));
   const slots = i < 6 ? 3 : i < 20 ? 4 : 5;
   const bays  = i < 8 ? 3 : i < 22 ? 4 : 5;
   const lives = i < 22 ? 3 : 4;
@@ -48,7 +70,7 @@ function makeDepot(i) {
   const skip = new Set(skipsFor(cols, rows, i).map(([c, r]) => c + ',' + r));
   const used = new Set();
   const key = (c, r) => c + ',' + r;
-  const free = (c, r) => c >= 0 && c < cols && r >= 0 && r < rows && !skip.has(key(c, r)) && !used.has(key(c, r));
+  const free = (c, r) => c >= 0 && c < cols && r >= 0 && r < rows && !skip.has(key(c, r)) && !obstacleCells.has(key(c, r)) && !used.has(key(c, r));
   const trucks = [];
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
@@ -60,7 +82,7 @@ function makeDepot(i) {
       used.add(key(c, r)); trucks.push({ c, r, mat: m, size: 1 });
     }
   }
-  return { cols, rows, slots, bays, lives, patience, mats, trucks };
+  return { cols, rows, slots, bays, lives, patience, mats, trucks, obstacles };
 }
 
 // ---- Obstacle levels: rectangular yard with interior terrain (rock / water / building).
