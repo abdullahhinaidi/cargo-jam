@@ -697,6 +697,7 @@ function draw() {
   drawBoard();
   drawDock();
   drawDockGlow();
+  drawLoadingApron();
   drawRoads();
   drawYard();
   drawCloudShadows();
@@ -908,6 +909,33 @@ function drawCloudShadows() {
   }
   ctx.restore();
 }
+function drawLoadingApron() {
+  // asphalt apron visually connects the garage threshold to the play yard
+  const x = L.lotX - CELL * 0.42, w = cols * CELL + CELL * 0.84;
+  const y0 = L.dockY + L.dockH * 0.46, y1 = L.lotY + CELL * 0.58;
+  const g = ctx.createLinearGradient(0, y0, 0, y1);
+  g.addColorStop(0, '#252c3b'); g.addColorStop(0.55, '#1b2230'); g.addColorStop(1, '#111722');
+  ctx.fillStyle = g; roundRect(x, y0, w, y1 - y0, 6); ctx.fill();
+  ctx.strokeStyle = 'rgba(115,128,151,0.25)'; ctx.lineWidth = 1;
+  for (let yy = y0 + CELL*0.16; yy < y1; yy += CELL*0.18) line(x + 4, yy, x + w - 4, yy);
+  // concrete threshold immediately below the garage platform
+  ctx.fillStyle = '#707a8e'; roundRect(x, y0 - CELL*0.04, w, CELL*0.10, 3); ctx.fill();
+  ctx.fillStyle = '#c99a3e'; ctx.fillRect(x, y0 - CELL*0.015, w, CELL*0.025);
+  // yellow/black safety blocks and short bollards
+  const blockW = CELL * 0.13;
+  for (let bx = x + CELL*0.18; bx < x + w - CELL*0.1; bx += CELL*0.30) {
+    ctx.fillStyle = ((Math.floor((bx-x)/(CELL*0.30)) & 1) ? '#1c202b' : '#f0bd4f');
+    roundRect(bx, y0 + CELL*0.055, blockW, CELL*0.10, 2); ctx.fill();
+  }
+  ctx.fillStyle = '#171c28';
+  for (const bx of [x + CELL*0.18, x + w - CELL*0.18]) { roundRect(bx, y0 + CELL*0.17, CELL*0.08, CELL*0.30, 3); ctx.fill(); ctx.fillStyle = '#e2af48'; ctx.beginPath(); ctx.arc(bx + CELL*0.04, y0 + CELL*0.17, CELL*0.045, 0, 7); ctx.fill(); ctx.fillStyle = '#171c28'; }
+  // subtle tire scuffs keep the apron grounded without competing with trucks
+  ctx.strokeStyle = 'rgba(5,8,14,0.34)'; ctx.lineWidth = Math.max(1.5, CELL*0.025); ctx.setLineDash([CELL*0.12, CELL*0.12]);
+  line(x + w*0.34, y0 + CELL*0.34, x + w*0.29, y1 - CELL*0.04);
+  line(x + w*0.66, y0 + CELL*0.34, x + w*0.71, y1 - CELL*0.04);
+  ctx.setLineDash([]);
+}
+
 function drawRoads() {
   const lw = L.laneW, x0 = L.leftLaneX - lw/2, x1 = L.rightLaneX + lw/2, yT = L.collectorY - lw/2, yB = L.bottomLaneY + lw/2;
   ctx.fillStyle = 'rgba(15,18,30,0.6)';
