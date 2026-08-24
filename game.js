@@ -37,7 +37,6 @@ const RUSH_CHANCE = 0.16, RUSH_TIME = 0.5, RUSH_MULT = 2;
 const canvas = document.getElementById('board');
 const ctx = canvas.getContext('2d');
 const PAD = 14;
-const VIEW_SKEW = 0.035; // subtle top-down diorama lean; interaction is inverse-mapped below
 let CELL = 60, DPR = 1, L = {};
 
 /* ---------- State ---------- */
@@ -507,8 +506,7 @@ function handleTap(evt) {
   const rect = canvas.getBoundingClientRect();
   const sx = canvas.width / DPR / rect.width, sy = canvas.height / DPR / rect.height;
   const px = (evt.clientX - rect.left) * sx, py = (evt.clientY - rect.top) * sy;
-  const unskewX = px - VIEW_SKEW * (py - L.h * 0.5);
-  const c = Math.floor((unskewX - L.lotX) / CELL), r = Math.floor((py - L.lotY) / CELL);
+  const c = Math.floor((px - L.lotX) / CELL), r = Math.floor((py - L.lotY) / CELL);
   const t = occupied(c, r);
   // eject tool armed: next depot truck tapped drives straight off to the street
   if (armedTool === 'eject') {
@@ -694,8 +692,6 @@ function draw() {
   ctx.clearRect(0, 0, L.w, L.h);
   const shaking = shakeMag > 0.2;
   if (shaking) { ctx.save(); ctx.translate((rnd() - 0.5) * shakeMag, (rnd() - 0.5) * shakeMag); }
-  // small oblique projection: the board leans like a physical diorama while the HUD stays flat
-  ctx.save(); ctx.transform(1, 0, VIEW_SKEW, 1, -VIEW_SKEW * L.h * 0.5, 0);
   drawGround();
   drawBoard();
   drawDock();
@@ -708,7 +704,6 @@ function draw() {
   for (const t of trucks) if (t.state !== 'depot' && !t.done) drawTruck(t);
   drawParticles();
   drawFloaters();
-  ctx.restore();
   if (shaking) ctx.restore();
   drawVignette();
   if (armedTool === 'eject') drawBanner('👆 اختر شاحنة لإخراجها إلى الشارع', 'rgba(255,183,3,0.96)', '#241500');
