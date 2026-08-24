@@ -887,18 +887,28 @@ function drawRoads() {
 }
 
 function drawYard() {
-  const gx = L.lotX - 6, gy = L.lotY - 6, gw = cols*CELL + 12, gh = rows*CELL + 12;
-  const g = ctx.createLinearGradient(0, gy, 0, gy+gh); g.addColorStop(0, '#363c4e'); g.addColorStop(1, '#2b3040');
-  ctx.fillStyle = g; roundRect(gx, gy, gw, gh, 18); ctx.fill();
-  ctx.fillStyle = 'rgba(255,255,255,0.03)';
-  for (let i = 0; i < cols*rows; i++) ctx.fillRect(L.lotX + (i*53)%(cols*CELL), L.lotY + (i*97)%(rows*CELL), 2, 2);
-  // faint oil stains for a used-depot texture (deterministic, so they don't flicker)
-  ctx.fillStyle = 'rgba(0,0,0,0.10)';
-  for (let i = 0; i < 5; i++) { const p = cellPos((i*3+1)%cols, (i*2+2)%rows);
-    ctx.beginPath(); ctx.ellipse(p.x, p.y, CELL*0.22, CELL*0.15, i, 0, 7); ctx.fill(); }
-  ctx.strokeStyle = 'rgba(255,209,102,0.15)'; ctx.lineWidth = 2;
-  for (let c = 1; c < cols; c++) line(L.lotX+c*CELL, L.lotY+6, L.lotX+c*CELL, L.lotY+rows*CELL-6);
-  for (let r = 1; r < rows; r++) line(L.lotX+6, L.lotY+r*CELL, L.lotX+cols*CELL-6, L.lotY+r*CELL);
+  const gx = L.lotX - 8, gy = L.lotY - 8, gw = cols*CELL + 16, gh = rows*CELL + 16;
+  // layered steel retaining frame
+  ctx.fillStyle = 'rgba(0,0,0,0.48)'; roundRect(gx + CELL*0.12, gy + CELL*0.18, gw, gh, 18); ctx.fill();
+  const frame = ctx.createLinearGradient(0, gy, 0, gy + gh); frame.addColorStop(0, '#78849b'); frame.addColorStop(.16, '#3e4a63'); frame.addColorStop(1, '#20283c');
+  ctx.fillStyle = frame; roundRect(gx, gy, gw, gh, 18); ctx.fill();
+  ctx.strokeStyle = '#d2a34b'; ctx.lineWidth = Math.max(2, CELL*0.045); roundRect(gx + 3, gy + 3, gw - 6, gh - 6, 15); ctx.stroke();
+  const floor = ctx.createLinearGradient(0, L.lotY, 0, L.lotY + rows*CELL); floor.addColorStop(0, '#303b50'); floor.addColorStop(1, '#1f293b');
+  ctx.fillStyle = floor; roundRect(L.lotX, L.lotY, cols*CELL, rows*CELL, 10); ctx.fill();
+  // alternating large floor plates, with a subtle bevel on every seam
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+    const px = L.lotX + c*CELL, py = L.lotY + r*CELL;
+    ctx.fillStyle = (c + r) % 2 ? 'rgba(255,255,255,0.018)' : 'rgba(0,0,0,0.025)'; ctx.fillRect(px + 1, py + 1, CELL - 2, CELL - 2);
+    ctx.strokeStyle = 'rgba(137,157,181,0.12)'; ctx.lineWidth = 1; ctx.strokeRect(px + 2, py + 2, CELL - 4, CELL - 4);
+  }
+  // deterministic oil stains and tiny reflective specks
+  ctx.fillStyle = 'rgba(0,0,0,0.12)';
+  for (let i = 0; i < 7; i++) { const p = cellPos((i*3+1)%cols, (i*2+2)%rows); ctx.beginPath(); ctx.ellipse(p.x, p.y, CELL*0.22, CELL*0.15, i, 0, 7); ctx.fill(); }
+  ctx.fillStyle = 'rgba(255,255,255,0.10)';
+  for (let i = 0; i < cols*rows; i += 3) ctx.fillRect(L.lotX + (i*53)%(cols*CELL) + CELL*.2, L.lotY + (i*97)%(rows*CELL) + CELL*.3, 1.5, 1.5);
+  // inset safety line and corner bolts
+  ctx.strokeStyle = 'rgba(255,209,102,0.30)'; ctx.lineWidth = Math.max(1.5, CELL*0.025); ctx.setLineDash([CELL*.18, CELL*.18]); roundRect(L.lotX + 5, L.lotY + 5, cols*CELL - 10, rows*CELL - 10, 5); ctx.stroke(); ctx.setLineDash([]);
+  for (const [bx, by] of [[gx+10,gy+10],[gx+gw-10,gy+10],[gx+10,gy+gh-10],[gx+gw-10,gy+gh-10]]) { ctx.fillStyle='#e2b04e'; ctx.beginPath(); ctx.arc(bx,by,Math.max(2,CELL*.06),0,7); ctx.fill(); ctx.fillStyle='rgba(255,255,255,.5)'; ctx.beginPath(); ctx.arc(bx-CELL*.02,by-CELL*.02,Math.max(1,CELL*.02),0,7); ctx.fill(); }
 }
 
 /* ---------- Obstacle art library (diorama props; deterministic → game-loop safe) ---------- */
