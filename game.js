@@ -813,6 +813,9 @@ function drawBoard() {
 function drawDock() {
   const x = PAD - 2, w = L.w - PAD*2 + 4;
   const roofY = L.dockY - CELL*0.02, roofH = CELL*0.3;
+  const buildingDepth = CELL * 0.18;
+  // deep cast shadow behind the warehouse mass
+  ctx.fillStyle = 'rgba(4,8,16,0.42)'; roundRect(x + buildingDepth, roofY + buildingDepth, w, L.dockH + roofH, 9); ctx.fill();
   // warehouse wall (corrugated)
   const wallTop = roofY + roofH, wallBot = L.dockY + L.dockH;
   const wg = ctx.createLinearGradient(0, wallTop, 0, wallBot);
@@ -820,8 +823,11 @@ function drawDock() {
   ctx.fillStyle = wg; roundRect(x, wallTop, w, wallBot - wallTop, 8); ctx.fill();
   ctx.strokeStyle = 'rgba(0,0,0,0.08)'; ctx.lineWidth = 1;
   for (let vx = x + 10; vx < x + w; vx += 12) line(vx, wallTop + 4, vx, wallBot - 4);
-  // roof
+  // recessed side thickness and front roof slab
+  ctx.fillStyle = '#242c40'; roundRect(x + 3, roofY + roofH - 3, w + 2, CELL*0.20, 4); ctx.fill();
   ctx.fillStyle = '#2c3350'; roundRect(x - 4, roofY, w + 8, roofH, 7); ctx.fill();
+  ctx.fillStyle = '#141a29'; roundRect(x - 5, roofY + roofH - CELL*0.045, w + 10, CELL*0.11, 3); ctx.fill();
+  ctx.fillStyle = '#d6a642'; roundRect(x - 4, roofY + roofH - CELL*0.025, w + 8, CELL*0.045, 2); ctx.fill();
   // steel roof cap, fascia and repeating rivets
   ctx.fillStyle = '#20283b'; roundRect(x - 4, roofY - CELL*0.14, w + 8, CELL*0.16, 5); ctx.fill();
   ctx.strokeStyle = 'rgba(255,255,255,0.24)'; ctx.lineWidth = 1;
@@ -848,8 +854,14 @@ function drawDock() {
     const bx = L.bayStartX + i * L.bayW + 5, bw = L.bayW - 10;
     const doorTop = wallTop + 5, doorBot = L.bayY + L.bayH * 0.5;
     const open = doorAnim[i] || 0;
-    // dark opening
-    ctx.fillStyle = '#12151f'; roundRect(bx, doorTop, bw, doorBot - doorTop, 5); ctx.fill();
+    // deep garage recess: lintel, side jambs and a warm interior floor
+    ctx.fillStyle = '#0b0f18'; roundRect(bx - CELL*0.045, doorTop - CELL*0.035, bw + CELL*0.09, doorBot - doorTop + CELL*0.12, 5); ctx.fill();
+    const recess = ctx.createLinearGradient(bx, doorTop, bx, doorBot);
+    recess.addColorStop(0, '#263047'); recess.addColorStop(0.56, '#111724'); recess.addColorStop(1, '#080b12');
+    ctx.fillStyle = recess; roundRect(bx, doorTop, bw, doorBot - doorTop, 4); ctx.fill();
+    ctx.fillStyle = '#d09f43'; roundRect(bx - CELL*0.05, doorTop - CELL*0.04, CELL*0.07, doorBot - doorTop + CELL*0.12, 2); ctx.fill(); roundRect(bx + bw - CELL*0.02, doorTop - CELL*0.04, CELL*0.07, doorBot - doorTop + CELL*0.12, 2); ctx.fill();
+    ctx.fillStyle = '#1a2231'; roundRect(bx + bw*0.12, doorBot - CELL*0.10, bw*0.76, CELL*0.07, 2); ctx.fill();
+    ctx.fillStyle = '#f6c85e'; ctx.beginPath(); ctx.arc(bx + bw*0.18, doorTop + CELL*0.10, CELL*0.035, 0, 7); ctx.fill();
     if (bays[i]) { // interior glow when occupied
       ctx.fillStyle = 'rgba(255,209,102,0.10)'; roundRect(bx, doorTop, bw, doorBot - doorTop, 5); ctx.fill();
     }
@@ -867,6 +879,7 @@ function drawDock() {
     ctx.fillText(String(i + 1), bx + bw/2, doorTop + CELL*0.16);
     // dock platform ledge + hazard chevrons
     const pY = L.bayY + L.bayH * 0.5;
+    ctx.fillStyle = 'rgba(7,10,17,0.55)'; roundRect(bx - CELL*0.07, pY + CELL*0.11, bw + CELL*0.14, CELL*0.10, 3); ctx.fill();
     ctx.fillStyle = '#39415f'; roundRect(bx - 2, pY, bw + 4, CELL*0.16, 3); ctx.fill();
     for (let hx = bx; hx < bx + bw; hx += CELL*0.18) { ctx.fillStyle = ((hx/CELL)|0) % 2 ? '#ffd166' : '#1b1e2a'; ctx.fillRect(hx, pY + 2, CELL*0.09, CELL*0.12); }
   }

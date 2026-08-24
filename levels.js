@@ -140,10 +140,10 @@ const OBSTACLE_LEVELS = [
 
 // Visual showcase: one garage bay and one goods truck, deliberately uncluttered for art review.
 const SHOWCASE_LEVEL = {
-  cols: 5, rows: 5, slots: 1, bays: 1, lives: 3, patience: 72,
+  cols: 4, rows: 5, slots: 1, bays: 1, lives: 3, patience: 72,
   mats: ['goods'],
   obstacles: [],
-  trucks: [{ c: 2, r: 3, mat: 'goods', size: 1, o: 'v' }],
+  trucks: [{ c: 1, r: 3, mat: 'goods', size: 1, o: 'v' }],
   showcase: true,
 };
 
