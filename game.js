@@ -622,7 +622,14 @@ function tryLoad(t) {
   if (o.done >= o.qty) { earn(ORDER_BONUS * mult); o.flash = 0.4; sndCoin(); shakeMag = Math.min(6, shakeMag + 4); confetti(rc.x + rc.w / 2, rc.y + rc.h / 2); coinArc(rc.x + rc.w / 2, rc.y + rc.h / 2); addText(rc.x + rc.w / 2, rc.y + rc.h * 0.5, '+' + (ORDER_BONUS * mult)); persist(); respawnSlot(idx); }
   if (t.loadLeft <= 0) {
     bays[t.bayIndex] = null; t.state = 'leaving'; t.heading = 0; t.doorHoldBay = t.bayIndex; t.bayIndex = -1; burst(t.x, t.y, '#cdd6ea', 8);
-    startRoute(t, [{ x: t.x, y: -CELL * 2.5 }], () => { t.state = 'done'; t.doorHoldBay = -1; t.done = true; afterDepart(); });
+    const mouthY = L.dockY + L.dockH * 0.46;
+    const insideY = L.dockY + L.dockH * 0.22;
+    const hideY = L.dockY + L.dockH * 0.08;
+    startRoute(t, [
+      { x: t.x, y: mouthY, face: 0 },
+      { x: t.x, y: insideY, face: 0 },
+      { x: t.x, y: hideY, face: 0 },
+    ], () => { t.state = 'done'; t.doorHoldBay = -1; t.done = true; afterDepart(); });
     sndDepart();
   }
   updateHUD(); fixDeadlock();
@@ -1212,6 +1219,11 @@ function drawObstacles() {
 const DIR_ANGLE = { up: 0, right: Math.PI/2, down: Math.PI, left: -Math.PI/2 };
 function drawTruck(t) {
   const mat = MATERIALS[t.mat] || MATERIALS.wood;
+  const enteringGarage = t.state === 'leaving' && t.doorHoldBay >= 0;
+  const fadeEnd = L.dockY + L.dockH * 0.08;
+  const fadeStart = L.dockY + L.dockH * 0.46;
+  const garageAlpha = enteringGarage ? Math.max(0, Math.min(1, (t.y - fadeEnd) / Math.max(1, fadeStart - fadeEnd))) : 1;
+  ctx.save(); ctx.globalAlpha = garageAlpha;
   const inDepot = t.state === 'depot';
   const moving = t.state === 'toBay' || t.state === 'leaving';
   const angle = moving ? (t.heading || 0) : (inDepot ? DIR_ANGLE[t.dir] : 0);
@@ -1231,6 +1243,7 @@ function drawTruck(t) {
     const py = t.y - t.size*CELL*0.5 - CELL*0.12;
     for (let i = 0; i < t.load; i++) { ctx.fillStyle = i < t.loadLeft ? mat.color : 'rgba(255,255,255,0.22)'; roundRect(sx, py, pw, pw*0.7, 2); ctx.fill(); sx += pw + gap; }
   }
+  ctx.restore();
 }
 
 function drawTruckBody(mat, size, opt) {
