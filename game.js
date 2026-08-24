@@ -1001,14 +1001,9 @@ function drawYardDetails() {
   const showcase = !!LEVELS[levelIndex]?.showcase;
   const gx = L.lotX, gy = L.lotY, gw = cols * CELL, gh = rows * CELL;
   ctx.save();
-  // painted loading arrows and stop boxes stay beneath trucks and never affect collision
+  // Keep the parking field visually quiet: no repeated boxes inside every parking cell.
+  // Functional markings are limited to the showcase approach lane and protected corners.
   ctx.globalAlpha = 0.58;
-  ctx.strokeStyle = '#d7b45d'; ctx.lineWidth = Math.max(1.2, CELL * 0.022); ctx.setLineDash([CELL*0.12, CELL*0.10]);
-  for (let c = 0; c < cols; c++) {
-    const x = gx + c * CELL + CELL*0.16, y = gy + CELL*0.18;
-    if (!occupied(c, 0)) { ctx.strokeRect(x, y, CELL*0.68, CELL*0.28); }
-  }
-  ctx.setLineDash([]);
   // center approach guide: a restrained industrial lane marking rather than a UI arrow
   if (showcase) {
     ctx.strokeStyle = 'rgba(226,178,72,0.58)'; ctx.lineWidth = Math.max(1.5, CELL*0.028); ctx.setLineDash([CELL*0.16, CELL*0.13]);
