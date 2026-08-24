@@ -1428,6 +1428,8 @@ function endWin() {
   if (save.unlocked < Math.min(LEVELS.length, levelIndex + 2)) save.unlocked = Math.min(LEVELS.length, levelIndex + 2);
   const roundEarned = earned;
   const walletBefore = save.coins;
+  // Bank the reward immediately for safety; the result animation reveals the same transfer progressively.
+  save.coins = walletBefore + roundEarned;
   persist();
   sndWin();
   const s = $('resultStars').children;
