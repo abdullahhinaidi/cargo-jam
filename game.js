@@ -446,13 +446,14 @@ function bayPos(i) { return { x: L.bayStartX + i * L.bayW + L.bayW / 2, y: L.bay
 function resize() {
   const stage = $('stage'); if (!stage) return;
   const availW = Math.max(200, stage.clientWidth), availH = Math.max(200, stage.clientHeight);
-  const vRows = rows + 5.0;
+  const showcase = !!LEVELS[levelIndex]?.showcase;
+  const vRows = rows + (showcase ? 4.35 : 5.0);
   const laneAllow = availW < 520 ? 1.25 : 1.7;      // slimmer ring road on phones
   const maxCols = Math.max(cols + laneAllow, SLOTS, BAYS);
   CELL = Math.max(24, Math.floor(Math.min((availW - PAD * 2) / maxCols, (availH - PAD * 2) / vRows)));
   L.w = maxCols * CELL + PAD * 2;
   L.boardH = CELL * 1.5; L.boardY = PAD;
-  L.dockH = CELL * 1.7; L.dockY = L.boardY + L.boardH + CELL * 0.3;
+  L.dockH = CELL * (showcase ? 2.35 : 1.7); L.dockY = L.boardY + L.boardH + CELL * 0.3;
   L.bayY = L.dockY + CELL * 0.35; L.bayH = L.dockH - CELL * 0.35;
   L.lotY = L.dockY + L.dockH + CELL * 0.85;
   L.collectorY = L.lotY - CELL * 0.45;
