@@ -453,3 +453,14 @@ button.press-hit{ animation:press-hit .22s ease-out; }
   #topbar .stat:nth-child(2) .hrt{ width:12px; height:12px; }
   #topbar .stat:nth-child(3) .stat-value{ font-size:13px; }
 }
+
+
+/* ---------- HUD follows the play window ---------- */
+#topbar{ width:min(100%,var(--play-width,980px)); }
+#controls.tools{ width:min(100%,var(--play-width,520px)); }
+#topbar .stat-card{ flex:1 1 auto; min-width:0; }
+#topbar .ctrl-cluster{ flex:0 0 auto; }
+@media (max-width:560px){
+  #topbar{ width:min(100%,var(--play-width,100%)); }
+  #topbar .ctrl-cluster .icon-btn{ width:38px; height:38px; }
+}

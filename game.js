@@ -453,6 +453,7 @@ function resize() {
   const maxCols = Math.max(cols + laneAllow, SLOTS, BAYS);
   CELL = Math.max(24, Math.floor(Math.min((availW - PAD * 2) / maxCols, (availH - PAD * 2) / vRows)));
   L.w = maxCols * CELL + PAD * 2;
+  document.documentElement.style.setProperty('--play-width', `${L.w}px`);
   L.boardH = CELL * 1.22; L.boardY = PAD;
   L.dockH = CELL * (showcase ? 2.05 : 1.85); L.dockY = L.boardY + L.boardH + CELL * 0.18;
   L.bayY = L.dockY + CELL * 0.38; L.bayH = L.dockH - CELL * 0.38;
