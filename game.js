@@ -453,9 +453,9 @@ function resize() {
   CELL = Math.max(24, Math.floor(Math.min((availW - PAD * 2) / maxCols, (availH - PAD * 2) / vRows)));
   L.w = maxCols * CELL + PAD * 2;
   L.boardH = CELL * 1.5; L.boardY = PAD;
-  L.dockH = CELL * (showcase ? 2.35 : 1.7); L.dockY = L.boardY + L.boardH + CELL * 0.3;
-  L.bayY = L.dockY + CELL * 0.35; L.bayH = L.dockH - CELL * 0.35;
-  L.lotY = L.dockY + L.dockH + CELL * 0.85;
+  L.dockH = CELL * (showcase ? 2.65 : 2.15); L.dockY = L.boardY + L.boardH + CELL * 0.3;
+  L.bayY = L.dockY + CELL * 0.38; L.bayH = L.dockH - CELL * 0.38;
+  L.lotY = L.dockY + L.dockH + CELL * (showcase ? 0.68 : 0.58);
   L.collectorY = L.lotY - CELL * 0.45;
   L.lotX = (L.w - cols * CELL) / 2;
   L.laneW = CELL * 0.72;
