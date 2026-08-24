@@ -821,9 +821,20 @@ function drawDock() {
   for (let vx = x + 10; vx < x + w; vx += 12) line(vx, wallTop + 4, vx, wallBot - 4);
   // roof
   ctx.fillStyle = '#2c3350'; roundRect(x - 4, roofY, w + 8, roofH, 7); ctx.fill();
+  // steel roof cap, fascia and repeating rivets
+  ctx.fillStyle = '#20283b'; roundRect(x - 4, roofY - CELL*0.14, w + 8, CELL*0.16, 5); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.24)'; ctx.lineWidth = 1;
+  for (let vx = x + 10; vx < x + w; vx += CELL*0.28) line(vx, roofY - CELL*0.10, vx, roofY + CELL*0.02);
   ctx.fillStyle = '#ffd166'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.font = `900 ${Math.floor(CELL*0.26)}px system-ui`;
   ctx.fillText('🏭  مركز الشحن', L.w/2, roofY + roofH/2);
+  // heavy vertical columns give each garage bay a physical frame
+  for (let i = 0; i <= BAYS; i++) {
+    const px = L.bayStartX + i * L.bayW;
+    const cg = ctx.createLinearGradient(px - CELL*0.07, 0, px + CELL*0.07, 0); cg.addColorStop(0, '#2c3448'); cg.addColorStop(.45, '#b5c0d0'); cg.addColorStop(1, '#343e53');
+    ctx.fillStyle = cg; roundRect(px - CELL*0.07, wallTop + 2, CELL*0.14, L.bayY + L.bayH*0.52 - wallTop, 3); ctx.fill();
+    ctx.fillStyle = '#e2b04e'; ctx.beginPath(); ctx.arc(px, wallTop + CELL*0.11, Math.max(2, CELL*0.045), 0, 7); ctx.fill();
+  }
   // pulsing amber beacon on the roof edge — a little sign of life
   const bcx = x + CELL * 0.45, bcy = roofY + roofH * 0.5, pulse = 0.5 + 0.5 * Math.sin(lastTs * 0.006);
   const bg = ctx.createRadialGradient(bcx, bcy, 0, bcx, bcy, CELL * 0.3);
@@ -1143,11 +1154,17 @@ function drawTruckBody(mat, size, opt) {
   const axles = size > 1 ? [-hh+cab+CELL*0.15, 0, hh-CELL*0.2] : [-hh+cab+CELL*0.05, hh-CELL*0.18];
   for (const wy of axles) for (const wx of [-hw-ww*0.45, hw-ww*0.55]) {
     ctx.fillStyle = '#15171d'; roundRect(wx, wy-wl/2, ww, wl, ww*0.35); ctx.fill();
+    ctx.fillStyle = '#778397'; ctx.beginPath(); ctx.arc(wx + ww/2, wy, ww*0.27, 0, 7); ctx.fill();
+    ctx.fillStyle = '#202631'; ctx.beginPath(); ctx.arc(wx + ww/2, wy, ww*0.13, 0, 7); ctx.fill();
     ctx.fillStyle = 'rgba(255,255,255,0.13)';
     for (let k = -1; k < 3; k++) { const ty = wy - wl/2 + off + k*period; if (ty > wy-wl/2+1 && ty < wy+wl/2-1) ctx.fillRect(wx+ww*0.22, ty, ww*0.56, 1.5); }
   }
   // cargo bed
   drawCargo(mat, -hh+cab, hh, w);
+  // cargo rails and tie-down points give the load a physical mounting frame
+  ctx.strokeStyle = '#202631'; ctx.lineWidth = Math.max(2, w*0.045);
+  line(-hw+w*0.08, -hh+cab+CELL*0.06, -hw+w*0.08, hh-CELL*0.08); line(hw-w*0.08, -hh+cab+CELL*0.06, hw-w*0.08, hh-CELL*0.08);
+  ctx.fillStyle = '#e0ad4b'; for (const yy of [-hh+cab+CELL*0.13, hh-CELL*0.12]) { for (const xx of [-hw+w*0.08, hw-w*0.08]) { ctx.beginPath(); ctx.arc(xx, yy, Math.max(1.2, w*0.035), 0, 7); ctx.fill(); } }
   // cab
   ctx.fillStyle = '#2b303c'; roundRect(-hw, -hh, w, cab+rad, rad); ctx.fill();
   ctx.fillStyle = 'rgba(255,255,255,0.10)'; roundRect(-hw+2, -hh+2, w-4, cab*0.28, rad*0.6); ctx.fill();  // cab rim light
