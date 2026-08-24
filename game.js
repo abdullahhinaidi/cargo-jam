@@ -1151,9 +1151,15 @@ function drawTruckBody(mat, size, opt) {
     gl.addColorStop(0, 'rgba(255,240,180,0.26)'); gl.addColorStop(1, 'rgba(255,240,180,0)');
     ctx.fillStyle = gl; ctx.beginPath(); ctx.moveTo(-w*0.42,-hh); ctx.lineTo(w*0.42,-hh); ctx.lineTo(w*0.95,-hh-CELL*0.55); ctx.lineTo(-w*0.95,-hh-CELL*0.55); ctx.closePath(); ctx.fill();
   }
-  // colour tab on cab roof
+  // colour tab on cab roof, beacon and side mirrors
   ctx.fillStyle = mat.color; roundRect(-w*0.16, -hh+cab*0.04, w*0.32, cab*0.2, 2); ctx.fill();
-  // brake lights (rear) when braking to dock
+  ctx.fillStyle = '#f4c14b'; ctx.beginPath(); ctx.arc(0, -hh + cab*0.05, Math.max(1.5, w*0.055), 0, 7); ctx.fill();
+  ctx.fillStyle = '#252b38'; roundRect(-hw-w*0.08, -hh+cab*0.42, w*0.10, cab*0.17, 2); ctx.fill(); roundRect(hw-w*0.02, -hh+cab*0.42, w*0.10, cab*0.17, 2); ctx.fill();
+  // metallic front bumper and grille, with small bolts
+  ctx.fillStyle = '#202631'; roundRect(-hw+w*0.07, -hh+cab*0.78, w*0.86, Math.max(2.5, cab*0.12), 2); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.28)'; ctx.lineWidth = 1; for (let gx = -w*0.25; gx <= w*0.25; gx += w*0.12) line(gx, -hh+cab*0.80, gx, -hh+cab*0.88);
+  ctx.fillStyle = '#e7b34f'; for (const bx of [-hw+w*0.16, hw-w*0.16]) { ctx.beginPath(); ctx.arc(bx, -hh+cab*0.86, Math.max(1.2, w*0.035), 0, 7); ctx.fill(); }
+  // brake lights (rear) when braking
   if (opt.braked > 0.02) { ctx.globalAlpha = Math.min(1, opt.braked*3); ctx.fillStyle = '#ff3b30';
     ctx.beginPath(); ctx.arc(-hw+w*0.2, hh-2, w*0.085, 0, 7); ctx.fill(); ctx.beginPath(); ctx.arc(hw-w*0.2, hh-2, w*0.085, 0, 7); ctx.fill(); ctx.globalAlpha = 1; }
   // depth gradient overlay (top-light → bottom-shade)
