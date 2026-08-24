@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>قائد الشحنات — Cargo Commander</title>
-  <link rel="stylesheet" href="style.css?v=44" />
+  <link rel="stylesheet" href="style.css?v=45" />
 
   <!-- ============================================================
        إحصاءات GoatCounter (زوّار + أحداث اللاعبين) — بدون كوكيز، بدون بيانات شخصية.
@@ -148,7 +148,7 @@
         </div>
         <div class="stat">
           <span class="stat-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="#ffcf3f" stroke="#c98f16" stroke-width="1.6"/><circle cx="12" cy="12" r="5" fill="none" stroke="#d99f1e" stroke-width="1.4"/><circle cx="9.2" cy="9.2" r="1.5" fill="#fff6d8"/></svg></span>
-          <span class="stat-text"><span class="stat-label">العملات</span><span class="stat-value" id="coinsValue">0</span></span>
+          <span class="stat-text"><span class="stat-label">عملات الدور</span><span class="stat-value" id="coinsValue">0</span><span class="stat-wallet">الإجمالي: <b id="walletValue">0</b></span></span>
         </div>
         <div class="stat">
           <span class="stat-ic"><svg viewBox="0 0 24 24"><rect x="2" y="8" width="11" height="8" rx="1.6" fill="#cdd6ea"/><path d="M13 10h4.3l3.2 3.6V16H13z" fill="#9aa6c7"/><rect x="14.3" y="10.8" width="3" height="2.4" rx="0.5" fill="#a4d6f2"/><circle cx="6.2" cy="17" r="2.1" fill="#1b1e2a"/><circle cx="16.8" cy="17" r="2.1" fill="#1b1e2a"/></svg></span>
@@ -183,6 +183,11 @@
       <div class="stars" id="resultStars"><span>★</span><span>★</span><span>★</span></div>
       <h1 id="resultTitle">أحسنت!</h1>
       <p id="resultSub"></p>
+      <div class="coin-transfer" id="coinTransfer">
+        <div class="coin-step"><span>نتيجة الدور</span><strong id="roundCoins">+0</strong></div>
+        <span class="coin-arrow">→</span>
+        <div class="coin-step"><span>الإجمالي</span><strong id="totalCoins">0</strong></div>
+      </div>
       <div class="menu-buttons">
         <button class="btn btn-primary" id="nextBtn">▶ التالي</button>
         <button class="btn" id="retryBtn">↻ إعادة</button>
@@ -202,7 +207,7 @@
 
 </div>
 
-  <script src="levels.js?v=44"></script>
-  <script src="game.js?v=44"></script>
+  <script src="levels.js?v=45"></script>
+  <script src="game.js?v=45"></script>
 </body>
 </html>

@@ -186,6 +186,8 @@ body { background:radial-gradient(130% 100% at 50% -10%, #24325e 0%, #131c38 45%
 .stat-text{ display:flex; flex-direction:column; align-items:flex-start; line-height:1.1; min-width:0; }
 .stat-label{ font-size:11px; color:var(--dim); white-space:nowrap; }
 .stat-value{ font-size:21px; font-weight:900; white-space:nowrap; }
+.stat-wallet{ display:block; color:var(--dim); font-size:10px; line-height:1.1; margin-top:3px; white-space:nowrap; }
+.stat-wallet b{ color:var(--gold); font-weight:900; }
 .stat-value.hearts{ display:flex; gap:2px; align-items:center; }
 .hrt{ width:18px; height:18px; }
 .hrt path{ fill:var(--bad); }
@@ -227,6 +229,12 @@ body { background:radial-gradient(130% 100% at 50% -10%, #24325e 0%, #131c38 45%
 .stars span.on{ color:var(--gold); text-shadow:0 0 18px rgba(255,209,102,.6); animation:star-pop .4s backwards; }
 .stars span.on:nth-child(2){ animation-delay:.12s; }
 .stars span.on:nth-child(3){ animation-delay:.24s; }
+.coin-transfer{ display:flex; align-items:center; justify-content:center; gap:14px; margin:4px 0 20px; padding:12px 10px; border:1px solid rgba(255,209,102,.25); border-radius:16px; background:rgba(10,16,34,.32); }
+.coin-step{ display:flex; flex-direction:column; gap:3px; min-width:92px; }
+.coin-step span{ color:var(--dim); font-size:12px; }
+.coin-step strong{ color:var(--gold); font-size:22px; font-weight:900; }
+.coin-arrow{ color:var(--accent); font-size:24px; font-weight:900; }
+.coin-transfer.hidden{ display:none; }
 
 @keyframes pop{ from{ transform:scale(.85); opacity:0; } }
 @keyframes star-pop{ from{ transform:scale(0) rotate(-40deg); } }

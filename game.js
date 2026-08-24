@@ -43,12 +43,12 @@ let CELL = 60, DPR = 1, L = {};
 let levelIndex = 0;
 let cols, rows, SLOTS, BAYS, maxLives;
 let trucks = [], bays = [], orders = [];
-let lives = 3, coins = 0, earned = 0;
+let lives = 3, earned = 0, transferTimer = null;
 let running = false, paused = false, orderSeq = 0;
 let armedTool = null;      // 'eject' while the player is choosing a truck to send off
 let floaters = [], particles = [];
-// coin wallet is persistent (save.coins); earn banks live, tools spend live
-function earn(n) { save.coins += n; earned += n; }
+// round earnings stay separate until the win screen transfers them into the persistent wallet
+function earn(n) { earned += n; }
 let patienceBase = 20;
 const TIME_FACTOR = 1.8;   // strategy tuning: stretch every order's patience so play is about thinking
 let lastTs = 0;
@@ -342,7 +342,7 @@ function startLevel(i) {
 function loadLevel(i) {
   const lv = LEVELS[i];
   cols = lv.cols; rows = lv.rows; SLOTS = lv.slots; BAYS = lv.bays;
-  maxLives = lv.lives; lives = lv.lives; coins = 0; earned = 0; armedTool = null;
+  maxLives = lv.lives; lives = lv.lives; earned = 0; if (transferTimer) { clearInterval(transferTimer); transferTimer = null; } armedTool = null;
   patienceBase = Math.round(lv.patience * TIME_FACTOR);   // longer time = room to think, not race
   bays = new Array(BAYS).fill(null);
   doorAnim = new Array(BAYS).fill(0);
@@ -375,7 +375,8 @@ function updateHUD() {
   el.levelValue.textContent = levelIndex + 1;
   el.livesValue.innerHTML = heartsHTML();
   el.livesBox.classList.toggle('low', lives <= 1);
-  el.coinsValue.textContent = fmt(save.coins);      // live persistent wallet (thousands separated)
+  el.coinsValue.textContent = fmt(earned);          // current round earnings
+  if ($('walletValue')) $('walletValue').textContent = fmt(save.coins);
   el.leftValue.textContent = trucks.filter(t => !t.done).length;
   updateToolBar();
 }
@@ -1425,14 +1426,27 @@ function endWin() {
   const stars = computeStars();
   if ((save.stars[levelIndex] || 0) < stars) save.stars[levelIndex] = stars;
   if (save.unlocked < Math.min(LEVELS.length, levelIndex + 2)) save.unlocked = Math.min(LEVELS.length, levelIndex + 2);
-  persist();   // coins already banked live into save.coins during play
+  const roundEarned = earned;
+  const walletBefore = save.coins;
+  persist();
   sndWin();
   const s = $('resultStars').children;
   for (let i = 0; i < 3; i++) { s[i].classList.remove('on'); if (i < stars) setTimeout(() => { s[i].classList.add('on'); sndStar(); }, 300 + i * 260); }
   $('resultTitle').textContent = levelIndex >= LEVELS.length - 1 ? '🏆 أنهيت كل المراحل!' : 'مستودع نظيف!';
-  $('resultSub').textContent = `ربحت ${earned} عملة  •  ${'⭐'.repeat(stars)}`;
+  $('resultSub').textContent = `مكافأة هذا الدور تُضاف إلى رصيدك الإجمالي  •  ${'⭐'.repeat(stars)}`;
+  $('coinTransfer').classList.remove('hidden');
+  $('roundCoins').textContent = '+' + fmt(roundEarned);
+  $('totalCoins').textContent = fmt(walletBefore);
   $('nextBtn').style.display = levelIndex >= LEVELS.length - 1 ? 'none' : '';
   showOverlay('resultOverlay');
+  let moved = 0;
+  if (transferTimer) clearInterval(transferTimer);
+  transferTimer = setInterval(() => {
+    moved = Math.min(roundEarned, moved + Math.max(1, Math.ceil(roundEarned / 24)));
+    $('roundCoins').textContent = '+' + fmt(roundEarned - moved);
+    $('totalCoins').textContent = fmt(walletBefore + moved);
+    if (moved >= roundEarned) { save.coins = walletBefore + roundEarned; persist(); updateHUD(); clearInterval(transferTimer); transferTimer = null; }
+  }, 45);
 }
 function endLose() {
   if (!running) return; running = false;
@@ -1441,6 +1455,7 @@ function endLose() {
   const s = $('resultStars').children; for (let i = 0; i < 3; i++) s[i].classList.remove('on');
   $('resultTitle').textContent = '💔 نفد صبر الزبائن';
   $('resultSub').textContent = 'حاول مرة ثانية — رتّب الشاحنات بذكاء!';
+  $('coinTransfer').classList.add('hidden');
   $('nextBtn').style.display = 'none';
   showOverlay('resultOverlay');
 }
