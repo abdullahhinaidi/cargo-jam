@@ -253,16 +253,44 @@ function frontCell(t) {
   if (t.o === 'v') return t.dir === 'up' ? [t.c, t.r] : [t.c, t.r + t.size - 1];
   return t.dir === 'left' ? [t.c, t.r] : [t.c + t.size - 1, t.r];
 }
-let obstacles = new Set();     // "c,r" impassable terrain cells (rock / water / building)
+let obstacles = new Set();     // conservative occupied terrain cells used by level generation
 let obstacleRects = [];        // [{x,y,w,h,kind}] for rendering
-function isObstacle(c, r) { return obstacles.has(c + ',' + r); }
+let obstacleKinds = new Map(); // cell key -> obstacle kind for dynamic passage rules
+function obstacleAt(c, r) { return obstacleKinds.get(c + ',' + r) || null; }
+function obstacleBlocks(c, r, dir) {
+  const kind = obstacleAt(c, r);
+  if (!kind) return false;
+  // Bridges and container corridors are usable only along their long axis.
+  if (kind === 'bridge' || kind === 'containers') {
+    const rect = obstacleRects.find(o => c >= o.x && c < o.x + o.w && r >= o.y && r < o.y + o.h && o.kind === kind);
+    if (!rect) return true;
+    const alongHorizontal = rect.w >= rect.h;
+    const along = alongHorizontal ? (dir === 'left' || dir === 'right') : (dir === 'up' || dir === 'down');
+    return !along;
+  }
+  return true;
+}
+function isObstacle(c, r, dir) { return obstacles.has(c + ',' + r) && obstacleBlocks(c, r, dir); }
+function obstacleBenefitOnExit(t) {
+  let bridge = false, container = false;
+  const [fc, fr] = frontCell(t);
+  const s = { up:[0,-1], down:[0,1], left:[-1,0], right:[1,0] }[t.dir];
+  let c = fc + s[0], r = fr + s[1];
+  while (c >= 0 && c < cols && r >= 0 && r < rows) {
+    const kind = obstacleAt(c, r);
+    if (kind === 'bridge') bridge = true;
+    if (kind === 'containers') container = true;
+    c += s[0]; r += s[1];
+  }
+  return bridge ? 1.22 : container ? 0.86 : 1;
+}
 function occupied(c, r) { return trucks.find(t => t.state === 'depot' && truckCells(t).some(([x, y]) => x === c && y === r)) || null; }
 function canExit(t) {
   let [c, r] = frontCell(t);
   const s = { up:[0,-1], down:[0,1], left:[-1,0], right:[1,0] }[t.dir];
   c += s[0]; r += s[1];
   while (c >= 0 && c < cols && r >= 0 && r < rows) {
-    if (isObstacle(c, r)) return false;              // terrain blocks the straight-line pull-out
+    if (isObstacle(c, r, t.dir)) return false;      // terrain may block or permit this direction
     const o = occupied(c, r); if (o && o !== t) return false;
     c += s[0]; r += s[1];
   }
@@ -275,7 +303,7 @@ function exitObstacleClear(c, r, o, size, dir) {
   else           { fr = r; fc = dir === 'left' ? c : c + size - 1; }
   const s = { up:[0,-1], down:[0,1], left:[-1,0], right:[1,0] }[dir];
   fc += s[0]; fr += s[1];
-  while (fc >= 0 && fc < cols && fr >= 0 && fr < rows) { if (isObstacle(fc, fr)) return false; fc += s[0]; fr += s[1]; }
+  while (fc >= 0 && fc < cols && fr >= 0 && fr < rows) { if (isObstacle(fc, fr, dir)) return false; fc += s[0]; fr += s[1]; }
   return true;
 }
 // face the nearest edge whose straight path is clear of obstacles (so terrain never traps a truck)
@@ -309,8 +337,11 @@ function loadLevel(i) {
   patienceBase = Math.round(lv.patience * TIME_FACTOR);   // longer time = room to think, not race
   bays = new Array(BAYS).fill(null);
   doorAnim = new Array(BAYS).fill(0);
-  obstacles = new Set(); obstacleRects = lv.obstacles || [];
-  for (const o of obstacleRects) for (let dy = 0; dy < o.h; dy++) for (let dx = 0; dx < o.w; dx++) obstacles.add((o.x + dx) + ',' + (o.y + dy));
+  obstacles = new Set(); obstacleKinds = new Map(); obstacleRects = lv.obstacles || [];
+  for (const o of obstacleRects) for (let dy = 0; dy < o.h; dy++) for (let dx = 0; dx < o.w; dx++) {
+    const key = (o.x + dx) + ',' + (o.y + dy);
+    obstacles.add(key); obstacleKinds.set(key, o.kind);
+  }
   trucks = lv.trucks.map((t, idx) => {
     const size = t.size || 1;
     const dir = t.dir || autoDir(t.c, t.r, size > 1 ? t.o : null, size);
@@ -446,7 +477,7 @@ function startSeg(t) {
   const wp = t.route[t.routeI];
   const dx = wp.x - t.x, dy = wp.y - t.y;
   t.heading = (wp.face !== undefined) ? wp.face : (Math.hypot(dx, dy) > 1 ? Math.atan2(dx, -dy) : t.heading);
-  const dur = Math.max(0.1, Math.hypot(dx, dy) / (CELL * DRIVE_SPEED));
+  const dur = Math.max(0.1, Math.hypot(dx, dy) / (CELL * DRIVE_SPEED * (t.routeFactor || 1)));
   t.anim = tween(t, wp.x, wp.y, dur, () => advanceRoute(t)); t.anim.linear = true;
 }
 function advanceRoute(t) { t.routeI++; if (t.routeI >= t.route.length) { const cb = t.routeOnFinish; t.route = null; t.routeOnFinish = null; if (cb) cb(); return; } startSeg(t); }
@@ -477,6 +508,7 @@ function handleTap(evt) {
   }
   if (!t) return;
   if (!canExit(t)) { t.shake = 0.3; sndBlocked(); return; }
+  t.routeFactor = obstacleBenefitOnExit(t);
   const bi = bays.indexOf(null);
   if (bi < 0) { t.shake = 0.3; sndBlocked(); return; }
   bays[bi] = t; t.bayIndex = bi; t.state = 'toBay';
@@ -997,6 +1029,35 @@ function obBuilding(x, y, w, h, seed) {
     ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 1; for (let yy = dy + 4; yy < dy + dh - 2; yy += Math.max(4, dh * 0.16)) line(dx + 2, yy, dx + dwi - 2, yy);
   }
 }
+function drawObstacleCue(o, x, y, w, h) {
+  const horizontal = w >= h, pass = o.kind === 'bridge' || o.kind === 'containers';
+  ctx.save();
+  ctx.lineWidth = Math.max(1.5, CELL * 0.035);
+  ctx.setLineDash([CELL * 0.16, CELL * 0.12]);
+  ctx.strokeStyle = pass ? (o.kind === 'bridge' ? 'rgba(86,214,255,0.92)' : 'rgba(255,209,102,0.88)') : 'rgba(255,102,91,0.38)';
+  roundRect(x + CELL * 0.08, y + CELL * 0.08, w - CELL * 0.16, h - CELL * 0.16, CELL * 0.12); ctx.stroke();
+  ctx.setLineDash([]);
+  if (pass) {
+    const pulse = 0.5 + 0.5 * Math.sin(lastTs * 0.004 + o.x * 1.7 + o.y);
+    ctx.globalAlpha = 0.48 + pulse * 0.3;
+    ctx.strokeStyle = o.kind === 'bridge' ? '#7ee8ff' : '#ffe08a';
+    ctx.lineWidth = Math.max(1.5, CELL * 0.045);
+    const cy = y + h / 2, cx = x + w / 2;
+    ctx.beginPath();
+    if (horizontal) { ctx.moveTo(x + CELL * 0.28, cy); ctx.lineTo(x + w - CELL * 0.28, cy); }
+    else { ctx.moveTo(cx, y + CELL * 0.28); ctx.lineTo(cx, y + h - CELL * 0.28); }
+    ctx.stroke();
+    const arrow = (ax, ay, dx, dy) => { ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(ax - dx * CELL * 0.16 + dy * CELL * 0.10, ay - dy * CELL * 0.16 - dx * CELL * 0.10); ctx.lineTo(ax - dx * CELL * 0.16 - dy * CELL * 0.10, ay - dy * CELL * 0.16 + dx * CELL * 0.10); ctx.closePath(); ctx.fill(); };
+    ctx.fillStyle = ctx.strokeStyle;
+    if (horizontal) { arrow(x + w - CELL * 0.25, cy, 1, 0); arrow(x + CELL * 0.25, cy, -1, 0); }
+    else { arrow(cx, y + h - CELL * 0.25, 0, 1); arrow(cx, y + CELL * 0.25, 0, -1); }
+  } else {
+    ctx.fillStyle = 'rgba(255,86,75,0.72)';
+    ctx.font = `900 ${Math.max(10, CELL * 0.24)}px system-ui`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('×', x + w / 2, y + h / 2);
+  }
+  ctx.restore();
+}
 function drawObstacles() {
   for (const o of obstacleRects) {
     const x = L.lotX + o.x * CELL, y = L.lotY + o.y * CELL, w = o.w * CELL, h = o.h * CELL;
@@ -1008,9 +1069,9 @@ function drawObstacles() {
     else if (k === 'containers') obContainers(x, y, w, h, seed);
     else if (k === 'trees') obTrees(x, y, w, h, seed);
     else if (k === 'building') obBuilding(x, y, w, h, seed);
-    else if (k === 'mountain') obMountain(x, y, w, h, seed);   // parked: needs a better top-down solution
-    else if (k === 'boulders') obBoulders(x, y, w, h, seed);   // parked: rocky look not a fit yet
-    else obContainers(x, y, w, h, seed);   // 'rock' / default → industrial fallback that fits the yard
+    else if (k === 'mountain') obMountain(x, y, w, h, seed);
+    else obContainers(x, y, w, h, seed);
+    drawObstacleCue(o, x, y, w, h);
   }
 }
 
