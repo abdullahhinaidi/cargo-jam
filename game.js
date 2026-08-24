@@ -356,7 +356,7 @@ function loadLevel(i) {
     const dir = t.dir || autoDir(t.c, t.r, size > 1 ? t.o : null, size);
     const o = size > 1 ? t.o : (dir === 'left' || dir === 'right' ? 'h' : 'v');
     return { id: idx, c: t.c, r: t.r, o, dir, mat: t.mat, size, load: size, loadLeft: size,
-      state: 'depot', done: false, shake: 0, loadTimer: 0, bayIndex: -1,
+      state: 'depot', done: false, shake: 0, loadTimer: 0, bayIndex: -1, doorHoldBay: -1,
       x: 0, y: 0, homeX: 0, homeY: 0, anim: null, route: null, routeI: 0, routeOnFinish: null, heading: 0, smokeT: 0 };
   });
   orders = []; floaters = []; particles = []; paused = false; running = true;
@@ -579,8 +579,8 @@ function ejectTruck(t) {
     burst(rc.x + rc.w / 2, rc.y + rc.h / 2, MATERIALS[t.mat].color, 5);
     if (o.done >= o.qty) { earn(ORDER_BONUS * mult); o.flash = 0.4; confetti(rc.x + rc.w / 2, rc.y + rc.h / 2); respawnSlot(idx); }
   }
-  t.state = 'leaving'; t.heading = 0; t.bayIndex = -1; burst(t.x, t.y, '#cdd6ea', 8);
-  startRoute(t, [{ x: t.x, y: -CELL * 2.5 }], () => { t.state = 'done'; t.done = true; afterDepart(); });
+  t.state = 'leaving'; t.heading = 0; t.doorHoldBay = t.bayIndex; t.bayIndex = -1; burst(t.x, t.y, '#cdd6ea', 8);
+  startRoute(t, [{ x: t.x, y: -CELL * 2.5 }], () => { t.state = 'done'; t.doorHoldBay = -1; t.done = true; afterDepart(); });
   sndDepart();
   // keep it winnable: regenerate any order the remaining supply can no longer meet
   for (let i = 0; i < SLOTS; i++) { const o = orders[i]; if (o && (o.qty - o.done) > remainingByMat(o.mat)) orders[i] = makeOrder(); }
@@ -621,8 +621,8 @@ function tryLoad(t) {
   sndLoad();
   if (o.done >= o.qty) { earn(ORDER_BONUS * mult); o.flash = 0.4; sndCoin(); shakeMag = Math.min(6, shakeMag + 4); confetti(rc.x + rc.w / 2, rc.y + rc.h / 2); coinArc(rc.x + rc.w / 2, rc.y + rc.h / 2); addText(rc.x + rc.w / 2, rc.y + rc.h * 0.5, '+' + (ORDER_BONUS * mult)); persist(); respawnSlot(idx); }
   if (t.loadLeft <= 0) {
-    bays[t.bayIndex] = null; t.state = 'leaving'; t.heading = 0; burst(t.x, t.y, '#cdd6ea', 8);
-    startRoute(t, [{ x: t.x, y: -CELL * 2.5 }], () => { t.state = 'done'; t.done = true; afterDepart(); });
+    bays[t.bayIndex] = null; t.state = 'leaving'; t.heading = 0; t.doorHoldBay = t.bayIndex; t.bayIndex = -1; burst(t.x, t.y, '#cdd6ea', 8);
+    startRoute(t, [{ x: t.x, y: -CELL * 2.5 }], () => { t.state = 'done'; t.doorHoldBay = -1; t.done = true; afterDepart(); });
     sndDepart();
   }
   updateHUD(); fixDeadlock();
@@ -668,8 +668,12 @@ function render() {
     if (t.braked > 0) t.braked = Math.max(0, t.braked - dt);
     if (t.shake > 0) t.shake = Math.max(0, t.shake - dt);
   }
-  // doors: open when a truck occupies the bay
-  for (let i = 0; i < BAYS; i++) { const target = bays[i] ? 1 : 0; doorAnim[i] += (target - doorAnim[i]) * Math.min(1, dt * 6); }
+  // doors stay open while a truck enters, loads, and clears the threshold; close only after it is gone
+  for (let i = 0; i < BAYS; i++) {
+    const heldByTruck = trucks.some(t => t.doorHoldBay === i || (t.bayIndex === i && (t.state === 'toBay' || t.state === 'bay')));
+    const target = bays[i] || heldByTruck ? 1 : 0;
+    doorAnim[i] += (target - doorAnim[i]) * Math.min(1, dt * 6);
+  }
   updateParticles(dt);
   if (shakeMag > 0) shakeMag = Math.max(0, shakeMag - dt * 22);
   if (running) {
