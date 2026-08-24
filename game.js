@@ -1017,17 +1017,31 @@ function obTrees(x, y, w, h, seed) {
   }
 }
 function obBuilding(x, y, w, h, seed) {
-  const cell = CELL;
-  ctx.fillStyle = 'rgba(0,0,0,0.30)'; roundRect(x + 3, y + 5, w - 6, h - 6, 8); ctx.fill();
-  const g = ctx.createLinearGradient(0, y, 0, y + h); g.addColorStop(0, '#66718f'); g.addColorStop(1, '#404a68'); ctx.fillStyle = g; roundRect(x + 2, y + 2, w - 4, h - 4, 8); ctx.fill();
-  ctx.strokeStyle = 'rgba(0,0,0,0.10)'; ctx.lineWidth = 1; for (let vx = x + 8; vx < x + w - 4; vx += cell * 0.22) line(vx, y + cell * 0.36, vx, y + h - 6);
-  ctx.fillStyle = '#2c3350'; roundRect(x + 2, y + 2, w - 4, cell * 0.34, 8); ctx.fill();
+  const cell = CELL, pad = Math.max(3, cell * 0.06), roofH = Math.max(cell * 0.28, Math.min(h * 0.34, cell * 0.48));
+  // raised footprint and cast shadow make the building read as a physical obstruction
+  ctx.fillStyle = 'rgba(0,0,0,0.42)'; roundRect(x + cell * 0.12, y + cell * 0.16, w - cell * 0.02, h - cell * 0.02, cell * 0.14); ctx.fill();
+  ctx.fillStyle = '#171e31'; roundRect(x + pad, y + pad, w - pad * 2, h - pad * 1.4, cell * 0.12); ctx.fill();
+  const body = ctx.createLinearGradient(x, y, x, y + h); body.addColorStop(0, '#7786a6'); body.addColorStop(.45, '#53617f'); body.addColorStop(1, '#303b5b');
+  ctx.fillStyle = body; roundRect(x + pad * 1.5, y + pad * 1.5, w - pad * 3, h - pad * 2.5, cell * 0.09); ctx.fill();
+  ctx.strokeStyle = '#d59b39'; ctx.lineWidth = Math.max(2, cell * 0.045); roundRect(x + pad * 1.5, y + pad * 1.5, w - pad * 3, h - pad * 2.5, cell * 0.09); ctx.stroke();
+  // roof panels, skylights, and vents
+  ctx.fillStyle = '#252e49'; roundRect(x + pad * 2, y + pad * 2, w - pad * 4, roofH, cell * 0.06); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 1;
+  for (let vx = x + cell * 0.24; vx < x + w - cell * 0.2; vx += cell * 0.22) line(vx, y + cell * 0.12, vx, y + roofH);
+  const vents = Math.max(1, Math.floor(w / (cell * 1.4)));
+  for (let v = 0; v < vents; v++) { const vx = x + cell * 0.42 + v * cell * 1.25, vy = y + cell * 0.18; ctx.fillStyle = '#9eabc2'; roundRect(vx, vy, cell * 0.28, cell * 0.13, 2); ctx.fill(); ctx.fillStyle = '#20293f'; ctx.fillRect(vx + 2, vy + cell * 0.045, cell * 0.22, 2); }
+  // loading doors
   const doors = Math.max(1, Math.round(w / cell)), dw = (w - cell * 0.3) / doors;
   for (let d = 0; d < doors; d++) {
-    const dx = x + cell * 0.15 + d * dw + dw * 0.12, dwi = dw * 0.76, dy = y + cell * 0.5, dh = h - cell * 0.72;
-    ctx.fillStyle = '#20293f'; roundRect(dx, dy, dwi, dh, 3); ctx.fill();
-    ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 1; for (let yy = dy + 4; yy < dy + dh - 2; yy += Math.max(4, dh * 0.16)) line(dx + 2, yy, dx + dwi - 2, yy);
+    const dx = x + cell * 0.15 + d * dw + dw * 0.12, dwi = dw * 0.76, dy = y + roofH + cell * 0.12, dh = h - roofH - cell * 0.34;
+    ctx.fillStyle = '#182138'; roundRect(dx, dy, dwi, dh, 3); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.16)'; ctx.lineWidth = 1; for (let yy = dy + 4; yy < dy + dh - 2; yy += Math.max(4, dh * 0.16)) line(dx + 2, yy, dx + dwi - 2, yy);
+    ctx.fillStyle = '#e8b44d'; ctx.fillRect(dx, dy - 2, dwi, Math.max(2, cell * 0.035));
   }
+  // hazard chevrons on the lower edge
+  ctx.save(); ctx.beginPath(); ctx.rect(x + pad * 2, y + h - cell * 0.19, w - pad * 4, cell * 0.12); ctx.clip();
+  for (let i = -4; i < Math.ceil(w / cell) + 4; i++) { ctx.fillStyle = i % 2 ? '#252b3c' : '#e5a63c'; ctx.beginPath(); ctx.moveTo(x + i * cell * 0.35, y + h - cell * 0.2); ctx.lineTo(x + i * cell * 0.35 + cell * 0.18, y + h - cell * 0.2); ctx.lineTo(x + i * cell * 0.35 + cell * 0.04, y + h - cell * 0.08); ctx.lineTo(x + i * cell * 0.35 - cell * 0.14, y + h - cell * 0.08); ctx.closePath(); ctx.fill(); }
+  ctx.restore();
 }
 function drawObstacleCue(o, x, y, w, h) {
   const horizontal = w >= h, pass = o.kind === 'bridge' || o.kind === 'containers';
