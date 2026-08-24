@@ -705,6 +705,7 @@ function draw() {
   drawLoadingApron();
   drawRoads();
   drawYard();
+  drawYardDetails();
   drawCloudShadows();
   drawObstacles();
   for (const t of trucks) if (t.state === 'depot') drawTruck(t);
@@ -987,6 +988,37 @@ function drawYard() {
   // inset safety line and corner bolts
   ctx.strokeStyle = 'rgba(255,209,102,0.30)'; ctx.lineWidth = Math.max(1.5, CELL*0.025); ctx.setLineDash([CELL*.18, CELL*.18]); roundRect(L.lotX + 5, L.lotY + 5, cols*CELL - 10, rows*CELL - 10, 5); ctx.stroke(); ctx.setLineDash([]);
   for (const [bx, by] of [[gx+10,gy+10],[gx+gw-10,gy+10],[gx+10,gy+gh-10],[gx+gw-10,gy+gh-10]]) { ctx.fillStyle='#e2b04e'; ctx.beginPath(); ctx.arc(bx,by,Math.max(2,CELL*.06),0,7); ctx.fill(); ctx.fillStyle='rgba(255,255,255,.5)'; ctx.beginPath(); ctx.arc(bx-CELL*.02,by-CELL*.02,Math.max(1,CELL*.02),0,7); ctx.fill(); }
+}
+
+function drawYardDetails() {
+  const showcase = !!LEVELS[levelIndex]?.showcase;
+  const gx = L.lotX, gy = L.lotY, gw = cols * CELL, gh = rows * CELL;
+  ctx.save();
+  // painted loading arrows and stop boxes stay beneath trucks and never affect collision
+  ctx.globalAlpha = 0.58;
+  ctx.strokeStyle = '#d7b45d'; ctx.lineWidth = Math.max(1.2, CELL * 0.022); ctx.setLineDash([CELL*0.12, CELL*0.10]);
+  for (let c = 0; c < cols; c++) {
+    const x = gx + c * CELL + CELL*0.16, y = gy + CELL*0.18;
+    if (!occupied(c, 0)) { ctx.strokeRect(x, y, CELL*0.68, CELL*0.28); }
+  }
+  ctx.setLineDash([]);
+  // center approach guide: a restrained industrial lane marking rather than a UI arrow
+  if (showcase) {
+    ctx.strokeStyle = 'rgba(226,178,72,0.58)'; ctx.lineWidth = Math.max(1.5, CELL*0.028); ctx.setLineDash([CELL*0.16, CELL*0.13]);
+    line(gx + gw/2, gy + CELL*0.08, gx + gw/2, gy + CELL*0.84); ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(226,178,72,0.78)'; ctx.beginPath(); ctx.moveTo(gx + gw/2, gy + CELL*0.90); ctx.lineTo(gx + gw/2 - CELL*0.10, gy + CELL*0.73); ctx.lineTo(gx + gw/2 + CELL*0.10, gy + CELL*0.73); ctx.closePath(); ctx.fill();
+  }
+  // corner chevrons mark protected edges; they are visual only and do not occupy cells
+  ctx.globalAlpha = 0.8; ctx.strokeStyle = '#e2b04e'; ctx.lineWidth = Math.max(2, CELL*0.035); ctx.lineCap = 'square';
+  const corners = [[gx+CELL*0.18,gy+CELL*0.18,1,1],[gx+gw-CELL*0.18,gy+CELL*0.18,-1,1],[gx+CELL*0.18,gy+gh-CELL*0.18,1,-1],[gx+gw-CELL*0.18,gy+gh-CELL*0.18,-1,-1]];
+  for (const [x,y,sx,sy] of corners) { line(x, y, x+sx*CELL*0.18, y); line(x, y, x, y+sy*CELL*0.18); }
+  // flexible safety posts sit just inside the frame at regular intervals
+  ctx.fillStyle = '#202735';
+  for (let i = 1; i < 4; i++) for (const x of [gx + CELL*0.10, gx + gw - CELL*0.10]) {
+    const y = gy + gh * i / 4; ctx.fillRect(x - CELL*0.035, y - CELL*0.09, CELL*0.07, CELL*0.18);
+    ctx.fillStyle = '#e7b750'; ctx.beginPath(); ctx.arc(x, y - CELL*0.09, CELL*0.045, 0, 7); ctx.fill(); ctx.fillStyle = '#202735';
+  }
+  ctx.restore();
 }
 
 /* ---------- Obstacle art library (diorama props; deterministic → game-loop safe) ---------- */
