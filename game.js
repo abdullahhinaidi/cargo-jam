@@ -813,7 +813,9 @@ function drawBoard() {
 
 function drawDock() {
   const x = PAD - 2, w = L.w - PAD*2 + 4;
-  const roofY = L.dockY - CELL*0.02, roofH = CELL*0.3;
+  const showcase = !!LEVELS[levelIndex]?.showcase;
+  const roofY = L.dockY - CELL * (showcase ? 0.18 : 0.02);
+  const roofH = CELL * (showcase ? 0.52 : 0.30);
   const buildingDepth = CELL * 0.18;
   // deep cast shadow behind the warehouse mass
   ctx.fillStyle = 'rgba(4,8,16,0.42)'; roundRect(x + buildingDepth, roofY + buildingDepth, w, L.dockH + roofH, 9); ctx.fill();
@@ -833,6 +835,14 @@ function drawDock() {
   ctx.fillStyle = '#20283b'; roundRect(x - 4, roofY - CELL*0.14, w + 8, CELL*0.16, 5); ctx.fill();
   ctx.strokeStyle = 'rgba(255,255,255,0.24)'; ctx.lineWidth = 1;
   for (let vx = x + 10; vx < x + w; vx += CELL*0.28) line(vx, roofY - CELL*0.10, vx, roofY + CELL*0.02);
+  if (showcase) {
+    // oversized industrial canopy and rooftop service boxes for the visual prototype
+    ctx.fillStyle = '#121927'; roundRect(x + w*0.30, roofY - CELL*0.22, w*0.40, CELL*0.16, 5); ctx.fill();
+    ctx.fillStyle = '#8e9aae'; roundRect(x + w*0.34, roofY - CELL*0.30, w*0.32, CELL*0.13, 4); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.28)'; ctx.lineWidth = 1;
+    for (let vx = x + w*0.37; vx < x + w*0.65; vx += CELL*0.10) line(vx, roofY - CELL*0.28, vx, roofY - CELL*0.20);
+    ctx.fillStyle = '#d6a642'; roundRect(x + w*0.29, roofY - CELL*0.07, w*0.42, CELL*0.055, 2); ctx.fill();
+  }
   ctx.fillStyle = '#ffd166'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.font = `900 ${Math.floor(CELL*0.26)}px system-ui`;
   ctx.fillText('🏭  مركز الشحن', L.w/2, roofY + roofH/2);
@@ -853,7 +863,7 @@ function drawDock() {
   // bay doors + platform
   for (let i = 0; i < BAYS; i++) {
     const bx = L.bayStartX + i * L.bayW + 5, bw = L.bayW - 10;
-    const doorTop = wallTop + 5, doorBot = L.bayY + L.bayH * 0.5;
+    const doorTop = wallTop + (showcase ? CELL*0.08 : 5), doorBot = L.bayY + L.bayH * 0.5;
     const open = doorAnim[i] || 0;
     // deep garage recess: lintel, side jambs and a warm interior floor
     ctx.fillStyle = '#0b0f18'; roundRect(bx - CELL*0.045, doorTop - CELL*0.035, bw + CELL*0.09, doorBot - doorTop + CELL*0.12, 5); ctx.fill();
