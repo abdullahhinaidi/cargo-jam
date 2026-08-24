@@ -417,3 +417,39 @@ button.press-hit{ animation:press-hit .22s ease-out; }
   #topbar .stat-value{ font-size:14px; }
   #controls.tools .tool .tool-cost{ font-size:8px; }
 }
+
+
+/* ---------- HUD hierarchy pass ---------- */
+#topbar{ align-items:stretch; }
+#topbar .ctrl-cluster{ order:3; align-self:center; }
+#topbar .stat-card{ order:2; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); direction:rtl; min-height:58px; }
+#topbar .stat{ min-width:0; position:relative; flex:none; }
+#topbar .stat:nth-child(1){ order:1; background:linear-gradient(180deg,rgba(255,183,3,.14),rgba(255,183,3,.03)); }
+#topbar .stat:nth-child(4){ order:2; background:linear-gradient(180deg,rgba(46,194,126,.11),rgba(46,194,126,.02)); }
+#topbar .stat:nth-child(2){ order:3; }
+#topbar .stat:nth-child(3){ order:4; background:linear-gradient(180deg,rgba(255,209,102,.08),transparent); }
+#topbar .stat-text{ align-items:center; text-align:center; }
+#topbar .stat-label{ font-weight:800; }
+#topbar .stat-value{ line-height:1; }
+#topbar .stat-card .stat + .stat{ border-inline-start:1px solid rgba(201,214,234,.16); }
+#topbar .stat:nth-child(1)::before,#topbar .stat:nth-child(4)::before{ content:""; position:absolute; inset:6px 0; border-inline:1px solid rgba(255,209,102,.12); pointer-events:none; }
+#topbar .ctrl-cluster .icon-btn{ width:44px; height:44px; }
+
+@media (max-width:560px){
+  #topbar .stat-card{ min-height:50px; }
+  #topbar .stat-text{ width:100%; }
+  #topbar .stat:nth-child(1) .stat-ic,#topbar .stat:nth-child(4) .stat-ic{ display:none; }
+  #topbar .stat:nth-child(1) .stat-label,#topbar .stat:nth-child(4) .stat-label{ font-size:9px; }
+  #topbar .stat:nth-child(1) .stat-value,#topbar .stat:nth-child(4) .stat-value{ font-size:17px; }
+  #topbar .stat:nth-child(2) .stat-label{ display:none; }
+  #topbar .stat:nth-child(3) .stat-label{ font-size:8px; }
+  #topbar .stat:nth-child(3) .stat-value{ font-size:14px; }
+  #topbar .stat:nth-child(3) .stat-wallet{ font-size:7px; }
+}
+
+@media (max-width:380px){
+  #topbar .stat-card{ min-height:46px; }
+  #topbar .stat:nth-child(1) .stat-value,#topbar .stat:nth-child(4) .stat-value{ font-size:15px; }
+  #topbar .stat:nth-child(2) .hrt{ width:12px; height:12px; }
+  #topbar .stat:nth-child(3) .stat-value{ font-size:13px; }
+}
