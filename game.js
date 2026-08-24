@@ -62,6 +62,8 @@ function $(id){ return document.getElementById(id); }
 
 /* ---------- Screen manager ---------- */
 let musicTimer = null;
+const bgm = document.getElementById('bgm');
+if (bgm) { bgm.volume = 0.22; bgm.loop = true; }
 function showScreen(name) {
   screens.forEach(s => $(s).classList.toggle('hidden', s !== name));
   hideOverlay('pauseOverlay'); hideOverlay('resultOverlay'); hideOverlay('startOverlay');
@@ -211,12 +213,15 @@ const sndStar   = () => tone(1046, 0.14, 'triangle', 0.12, 1568);
 const sndCoin   = () => { tone(988, 0.05, 'square', 0.08, 1318); setTimeout(() => tone(1318, 0.09, 'square', 0.07, 1568), 55); noise(0.05, 'highpass', 6000, 1, 0.03); }; // cha-ching
 const sndWin    = () => [523, 659, 784, 1047, 1319].forEach((f, i) => setTimeout(() => tone(f, 0.2, 'triangle', 0.12), i * 110));
 const sndLose   = () => [440, 330, 262, 196].forEach((f, i) => setTimeout(() => tone(f, 0.3, 'sawtooth', 0.11, f * 0.92), i * 150));
+const sndBridge = () => { noise(0.18, 'bandpass', 720, 2.5, 0.035, 420); tone(180, 0.16, 'triangle', 0.04, 240); };
+const sndContainer = () => { noise(0.12, 'bandpass', 980, 5, 0.035, 1500); tone(280, 0.12, 'square', 0.025, 210); };
 
 // gentle ambient music loop
 const MUSIC_NOTES = [196, 261.6, 329.6, 392, 329.6, 261.6, 220, 261.6];
 let musicStep = 0;
 function musicTick() {
   if (!save.music || !running || paused || document.hidden) return;
+  if (bgm && !bgm.paused) return; // the generated theme is the primary soundtrack
   const a = actx(); if (!a) return;
   try {
     const f = MUSIC_NOTES[musicStep % MUSIC_NOTES.length]; musicStep++;
@@ -244,6 +249,9 @@ function musicTick() {
 }
 function updateMusic() {
   if (musicTimer) { clearInterval(musicTimer); musicTimer = null; }
+  const shouldPlay = !!(bgm && save.music && running && !paused && !document.hidden);
+  if (shouldPlay) { const p = bgm.play(); if (p && p.catch) p.catch(() => {}); }
+  else if (bgm) { bgm.pause(); }
   if (save.music) musicTimer = setInterval(musicTick, 620);
 }
 
@@ -509,6 +517,8 @@ function handleTap(evt) {
   if (!t) return;
   if (!canExit(t)) { t.shake = 0.3; sndBlocked(); return; }
   t.routeFactor = obstacleBenefitOnExit(t);
+  if (t.routeFactor > 1) sndBridge();
+  else if (t.routeFactor < 1) sndContainer();
   const bi = bays.indexOf(null);
   if (bi < 0) { t.shake = 0.3; sndBlocked(); return; }
   bays[bi] = t; t.bayIndex = bi; t.state = 'toBay';
@@ -674,7 +684,7 @@ function render() {
 function rafLoop() { try { render(); } catch (e) { console.error('render error:', e); } requestAnimationFrame(rafLoop); }
 requestAnimationFrame(rafLoop);
 setInterval(() => { if (document.hidden) { try { render(); } catch (e) {} } }, 250);
-document.addEventListener('visibilitychange', () => { lastTs = 0; render(); });
+document.addEventListener('visibilitychange', () => { lastTs = 0; updateMusic(); render(); });
 
 /* ---------- Rendering ---------- */
 function draw() {
