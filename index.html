@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>قائد الشحنات — Cargo Commander</title>
-  <link rel="stylesheet" href="style.css?v=47" />
+  <link rel="stylesheet" href="style.css?v=48" />
 
   <!-- ============================================================
        إحصاءات GoatCounter (زوّار + أحداث اللاعبين) — بدون كوكيز، بدون بيانات شخصية.
@@ -60,10 +60,10 @@
       <h1 class="title">قائد الشحنات</h1>
       <p class="tagline">خطّط، ناوِر، ووصّل كل شحنة!</p>
       <div class="menu-buttons">
-        <button class="btn btn-primary big" id="playBtn">▶ ابدأ اللعب</button>
-        <button class="btn" id="levelsBtn">🗺️ المراحل</button>
-        <button class="btn" id="profileBtn" data-nav="profile">🎖️ ملفّي</button>
-        <button class="btn" id="settingsBtn">⚙️ الإعدادات</button>
+        <button class="btn btn-primary big" id="playBtn"><svg class="ui-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.8v14.4a1.4 1.4 0 0 0 2.1 1.2l11.2-7.2a1.4 1.4 0 0 0 0-2.4L7.1 3.6A1.4 1.4 0 0 0 5 4.8Z"/></svg><span>ابدأ اللعب</span></button>
+        <button class="btn" id="levelsBtn"><svg class="ui-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m4 5 6-2 5 2 5-2v16l-5 2-5-2-6 2V5Z"/><path d="M10 3v16M15 5v16"/></svg><span>المراحل</span></button>
+        <button class="btn" id="profileBtn" data-nav="profile"><svg class="ui-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 14 8l5 .4-3.8 3.2 1.2 5-4.4-2.7-4.4 2.7 1.2-5L5 8.4 10 8l2-5Z"/><path d="M7 20c.8-2.5 2.5-3.7 5-3.7s4.2 1.2 5 3.7"/></svg><span>ملفّي</span></button>
+        <button class="btn" id="settingsBtn"><svg class="ui-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.2a3.8 3.8 0 1 0 0 7.6 3.8 3.8 0 0 0 0-7.6Z"/><path d="m19.4 13.5 1.2 1-.1 1.7-1.7 1-1.5-.3-1.1 1-.3 1.5-1.6.6-1.2-1-1.6.1-1 1.1-1.6-.6-.3-1.5-1.1-1-1.5.3-1.7-1-.1-1.7 1.2-1-.2-1.5-1.2-1 .1-1.7 1.7-1 1.5.3 1.1-1 .3-1.5 1.6-.6 1.2 1 1.6-.1 1-1.1 1.6.6.3 1.5 1.1 1 1.5-.3 1.7 1 .1 1.7-1.2 1 .2 1.5Z"/></svg><span>الإعدادات</span></button>
       </div>
       <div class="menu-stats" data-nav="profile" title="افتح ملفّي">
         <span id="menuStars">⭐ 0 / 90</span>
@@ -158,10 +158,10 @@
     </header>
     <div id="stage"><canvas id="board"></canvas></div>
     <footer id="controls" class="tools">
-      <button class="tool" id="toolHint" aria-label="تلميح"><span class="tool-ic">💡</span><span class="tool-cost">تلميح</span></button>
-      <button class="tool" id="toolRefresh" aria-label="تغيير الطلبات"><span class="tool-ic">🔄</span><span class="tool-cost">🪙25</span></button>
-      <button class="tool" id="toolShuffle" aria-label="خلط الساحة"><span class="tool-ic">🔀</span><span class="tool-cost">🪙40</span></button>
-      <button class="tool" id="toolEject" aria-label="نقل شاحنة للشارع"><span class="tool-ic">🚀</span><span class="tool-cost">🪙60</span></button>
+      <button class="tool" id="toolHint" aria-label="تلميح"><span class="tool-ic"><svg class="tool-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 21h4M8.2 14.8A6 6 0 1 1 16 14.5c-.8.7-1.1 1.5-1.3 2.5H9.3c-.2-.9-.4-1.6-1.1-2.2Z"/></svg></span><span class="tool-cost">تلميح</span></button>
+      <button class="tool" id="toolRefresh" aria-label="تغيير الطلبات"><span class="tool-ic"><svg class="tool-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6v5h-5M4 18v-5h5M19.2 11A7 7 0 0 0 6.1 7.2L4.5 11M4.8 13A7 7 0 0 0 17.9 16.8l1.6-3.8"/></svg></span><span class="tool-cost">🪙25</span></button>
+      <button class="tool" id="toolShuffle" aria-label="خلط الساحة"><span class="tool-ic"><svg class="tool-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h3c4 0 5 10 9 10h4M16 4l4 3-4 3M4 17h3c1.5 0 2.5-1.1 3.2-2.4M16 14l4 3-4 3"/></svg></span><span class="tool-cost">🪙40</span></button>
+      <button class="tool" id="toolEject" aria-label="نقل شاحنة للشارع"><span class="tool-ic"><svg class="tool-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13h10M11 7l6 6-6 6M17 13h3"/></svg></span><span class="tool-cost">🪙60</span></button>
     </footer>
   </section>
 
@@ -207,7 +207,7 @@
 
 </div>
 
-  <script src="levels.js?v=47"></script>
-  <script src="game.js?v=47"></script>
+  <script src="levels.js?v=48"></script>
+  <script src="game.js?v=48"></script>
 </body>
 </html>

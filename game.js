@@ -1495,6 +1495,23 @@ $('sfxToggle').addEventListener('change', e => { save.sfx = e.target.checked; pe
 $('musicToggle').addEventListener('change', e => { save.music = e.target.checked; persist(); updateMusic(); });
 $('resetBtn').addEventListener('click', () => { save = { unlocked: 1, stars: {}, coins: 0, sfx: save.sfx, music: save.music }; persist(); buildLevelSelect(); });
 
+/* ---------- Button feedback ---------- */
+document.addEventListener('pointerdown', e => {
+  const button = e.target.closest('button');
+  if (!button) return;
+  button.classList.remove('press-hit');
+  void button.offsetWidth;
+  button.classList.add('press-hit');
+  const rect = button.getBoundingClientRect();
+  const ripple = document.createElement('span');
+  ripple.className = 'press-ripple';
+  ripple.style.left = `${e.clientX - rect.left}px`;
+  ripple.style.top = `${e.clientY - rect.top}px`;
+  button.appendChild(ripple);
+  setTimeout(() => ripple.remove(), 520);
+  if (navigator.vibrate) navigator.vibrate(8);
+});
+
 /* ---------- Boot ---------- */
 window.addEventListener('resize', () => { if (running) resize(); });
 $('sfxToggle').checked = save.sfx; $('musicToggle').checked = save.music;
