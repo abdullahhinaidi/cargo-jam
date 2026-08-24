@@ -370,3 +370,50 @@ button.press-hit{ animation:press-hit .22s ease-out; }
 .tool.press-hit .tool-ic,.btn.press-hit .ui-ic{ animation:icon-pop .25s ease-out; }
 @keyframes icon-pop{ 45%{ transform:scale(1.16) rotate(-4deg); } }
 @media (prefers-reduced-motion:reduce){ .press-ripple{ display:none; } button.press-hit,.tool.press-hit .tool-ic,.btn.press-hit .ui-ic{ animation:none; } }
+
+
+/* ---------- Gameplay composition cleanup ---------- */
+#game{ gap:7px; padding:7px; }
+#topbar{ gap:6px; max-width:980px; }
+#topbar .stat-card{ min-width:0; }
+#topbar .stat{ padding:6px 5px; gap:6px; }
+#topbar .stat-label{ font-size:10px; }
+#topbar .stat-value{ font-size:19px; }
+#topbar .stat-wallet{ font-size:9px; }
+#stage{ align-items:flex-start; padding-top:0; }
+#board{ box-shadow:0 12px 34px rgba(0,0,0,.48); }
+#controls.tools{ flex:0 0 auto; width:min(100%,520px); gap:6px; padding:6px; border-radius:16px; }
+#controls.tools .tool{ min-height:58px; max-width:none; padding:5px 3px; gap:3px; border-radius:12px; }
+#controls.tools .tool .tool-ic{ width:30px; height:30px; border-radius:9px; }
+#controls.tools .tool .tool-cost{ font-size:10px; padding:1px 6px; }
+
+@media (max-width:560px){
+  #game{ gap:5px; padding:5px; }
+  #topbar{ gap:4px; }
+  #topbar .ctrl-cluster{ gap:4px; }
+  #topbar .stat{ padding:5px 2px; gap:3px; }
+  #topbar .stat-label{ font-size:8px; }
+  #topbar .stat-value{ font-size:15px; }
+  #topbar .stat-wallet{ font-size:7px; margin-top:1px; }
+  #topbar .stat-ic{ width:17px; height:17px; }
+  #topbar .hrt{ width:13px; height:13px; }
+  #controls.tools{ width:min(100%,470px); gap:4px; padding:5px; }
+  #controls.tools .tool{ min-height:52px; }
+  #controls.tools .tool .tool-ic{ width:27px; height:27px; }
+  #controls.tools .tool .tool-cost{ font-size:9px; }
+}
+
+@media (max-height:680px){
+  #game{ gap:4px; padding:4px; }
+  #topbar .stat{ padding-block:3px; }
+  #topbar .stat-value{ font-size:15px; }
+  #controls.tools .tool{ min-height:48px; }
+}
+
+@media (max-width:380px){
+  #topbar .ctrl-cluster .icon-btn{ width:34px; height:34px; }
+  #topbar .stat-ic{ display:none; }
+  #topbar .stat{ padding-inline:1px; }
+  #topbar .stat-value{ font-size:14px; }
+  #controls.tools .tool .tool-cost{ font-size:8px; }
+}
